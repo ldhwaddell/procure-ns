@@ -89,7 +89,7 @@ def build_remote_web_driver(
         command_executor="http://localhost:4444/wd/hub",
         options=options,
         seleniumwire_options=seleniumwire_options,
-        desired_capabilities=DesiredCapabilities.CHROME,
+        # desired_capabilities=DesiredCapabilities.CHROME,
     )
 
 
