@@ -1,0 +1,16 @@
+[project]
+name = "data"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aiohttp>=3.11.16",
+    "blinker==1.7.0",
+    "fake-useragent>=2.1.0",
+    "python-dotenv>=1.1.0",
+    "requests>=2.32.3",
+    "selenium>=4.31.0",
+    "selenium-wire>=5.1.0",
+    "setuptools>=78.1.0",
+]
