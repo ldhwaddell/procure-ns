@@ -115,10 +115,18 @@ headers = {
     "sec-ch-ua-platform": '"macOS"',
 }
 
-url = "https://procurement-portal.novascotia.ca/procurementui/tenders?page=1&numberOfRecords=6&sortType=POSTED_DATE_DESC&keyword="
+url = "https://procurement-portal.novascotia.ca/procurementui/tenders?page=1&numberOfRecords=50000&sortType=POSTED_DATE_DESC&keyword="
 
 print("\nSending authorized POST request to tenders endpoint...\n")
 with httpx.Client(cookies=cookie_jar, headers=headers, timeout=30) as client:
     response = client.post(url)
     print("Status code:", response.status_code)
     print("Response preview:\n", response.text[:500], "...\n")
+
+    try:
+        data = response.json()
+        with open("tenders.json", "w") as f:
+            json.dump(data, f, indent=2)
+        print("Response saved to tenders.json")
+    except Exception as e:
+        print("Failed to parse or save JSON:", e)
