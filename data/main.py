@@ -4,6 +4,7 @@ import json
 import socket
 import random
 import os
+import httpx
 
 load_dotenv()
 
@@ -25,6 +26,7 @@ def get_proxy_url(username: str, password: str, proxy_ip: str = None) -> dict:
 
 TARGET_URL = "https://procurement-portal.novascotia.ca/tenders"
 WATCH_REQUEST = "https://procurement-portal.novascotia.ca/procurementui/authenticate"
+jwt_token = None
 
 username = os.getenv("PROXY_USER")
 password = os.getenv("PROXY_PASS")
@@ -56,12 +58,17 @@ with sync_playwright() as p:
             print(f"Post data: {request.post_data}\n")
 
     def handle_response(response):
+        global jwt_token
         if response.url == WATCH_REQUEST:
             print("\n RESPONSE RECEIVED:")
             print(f"Status: {response.status}")
             print(f"URL: {response.url}")
             try:
-                print(f"Body: {response.text()[:300]}...\n")  # truncate for readability
+                body = response.text()
+                data = json.loads(body)
+                jwt_token = data.get("jwttoken")
+                print(f"Got JWT: {jwt_token}")
+
             except Exception as e:
                 print(f"Unable to read response body: {e}\n")
 
@@ -76,3 +83,39 @@ with sync_playwright() as p:
     print(json.dumps(cookies, indent=2))
 
     browser.close()
+
+
+if not jwt_token:
+    raise Exception("No token found")
+
+# Format cookies
+cookie_jar = httpx.Cookies()
+for cookie in cookies:
+    cookie_jar.set(cookie["name"], cookie["value"], domain=cookie["domain"])
+
+# Build headers
+headers = {
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Authorization": f"Bearer {jwt_token}",
+    "Connection": "keep-alive",
+    "Content-Length": "0",
+    "DNT": "1",
+    "Origin": "https://procurement-portal.novascotia.ca",
+    "Referer": "https://procurement-portal.novascotia.ca/tenders",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "sec-ch-ua": '"Chromium";v="134", "Not:A-Brand";v="24", "Google Chrome";v="134"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"macOS"',
+}
+
+url = "https://procurement-portal.novascotia.ca/procurementui/tenders?page=1&numberOfRecords=6&sortType=POSTED_DATE_DESC&keyword="
+
+print("\nSending authorized POST request to tenders endpoint...\n")
+with httpx.Client(cookies=cookie_jar, headers=headers, timeout=30) as client:
+    response = client.post(url)
+    print("Status code:", response.status_code)
+    print("Response preview:\n", response.text[:500], "...\n")
