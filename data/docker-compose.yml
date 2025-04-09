@@ -3,7 +3,7 @@ services:
     image: zenika/alpine-chrome:with-puppeteer
     container_name: chrome-headless
     ports:
-      - "localhost:9222:9222"
+      - "127.0.0.1:9222:9222"
     command: >
       chromium-browser
       --no-sandbox
