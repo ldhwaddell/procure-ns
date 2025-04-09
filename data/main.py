@@ -1,35 +1,64 @@
 import time
 import json
 
-from utils import build_remote_web_driver
+from fake_useragent import UserAgent
+
+
+def build_remote_webdriver():
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+
+    options = Options()
+    user_agent = UserAgent(platforms=["desktop"]).random
+    options.add_argument(f"user-agent={user_agent}")
+    options.add_argument("window-size=1920,1080")
+
+    options.add_argument("--headless=new")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    return webdriver.Remote(
+        command_executor="http://localhost:4444/wd/hub",
+        options=options,
+    )
+
+    ...
+
+
+def build_remote_webdriver_selwire(): ...
+
+
+def build_remote_webdriver_selwire_proxy(): ...
 
 
 def main():
-    url = "https://procurement-portal.novascotia.ca/tenders"
-    driver = build_remote_web_driver(use_proxy=True, headless=False)
+    # url = "https://procurement-portal.novascotia.ca/tenders"
+    url = "https://www.whatismyip.com/"
+    driver = build_remote_webdriver()
 
     try:
         driver.get(url)
 
-        print("Waiting for 10")
-        driver.implicitly_wait(10)
-        for request in driver.requests:
-            if request.response and "authenticate" in request.url:
-                try:
-                    body = request.response.body.decode("utf-8")
-                    data = json.loads(body)
-                    token = data.get("jwttoken")
-                    if token:
-                        print("Extracted Bearer Token:\n", token)
-                        break
-                except Exception as e:
-                    print("Failed to parse response:", e)
-        print("Waiting for 10 again")
-        time.sleep(10)
+        print(driver.title)
+
+        print(driver.page_source)
+
+        # print("Waiting for 10")
+        # driver.implicitly_wait(10)
+        # for request in driver.requests:
+        #     if request.response and "authenticate" in request.url:
+        #         try:
+        #             body = request.response.body.decode("utf-8")
+        #             data = json.loads(body)
+        #             token = data.get("jwttoken")
+        #             if token:
+        #                 print("Extracted Bearer Token:\n", token)
+        #                 break
+        #         except Exception as e:
+        #             print("Failed to parse response:", e)
+        # print("Waiting for 10 again")
+        # time.sleep(10)
     finally:
         driver.quit()
-
-    return []
 
 
 if __name__ == "__main__":
