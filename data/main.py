@@ -5,6 +5,7 @@ import socket
 import random
 import os
 import httpx
+from fake_useragent import UserAgent
 
 load_dotenv()
 
@@ -28,6 +29,8 @@ TARGET_URL = "https://procurement-portal.novascotia.ca/tenders"
 WATCH_REQUEST = "https://procurement-portal.novascotia.ca/procurementui/authenticate"
 jwt_token = None
 
+random_ua = UserAgent().chrome
+
 username = os.getenv("PROXY_USER")
 password = os.getenv("PROXY_PASS")
 proxy_conf = get_proxy_url(username, password)
@@ -36,7 +39,7 @@ with sync_playwright() as p:
     browser = p.chromium.connect_over_cdp("http://localhost:9222")
     context = browser.new_context(
         proxy=proxy_conf,
-        user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.78 Safari/537.36",
+        user_agent=random_ua,
         viewport={"width": 1280, "height": 800},
         device_scale_factor=1,
         is_mobile=False,
