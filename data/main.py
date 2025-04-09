@@ -27,6 +27,9 @@ def build_remote_webdriver_selwire():
     from seleniumwire import webdriver
     from selenium.webdriver.chrome.options import Options
 
+    public_ip = "178.156.171.122"
+    proxy_port = 12345
+
     options = Options()
     user_agent = UserAgent(platforms=["desktop"]).random
     options.add_argument(f"user-agent={user_agent}")
@@ -34,20 +37,21 @@ def build_remote_webdriver_selwire():
     options.add_argument("--headless=new")
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
+    options.add_argument("--ignore-certificate-errors")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--disable-infobars")
+    options.add_argument(f"--proxy-server={public_ip}:{proxy_port}")
 
-    seleniumwire_options = {
-        # Example: you can add a proxy or other intercept settings
-        # 'proxy': {
-        #     'http': 'http://user:pass@host:port',
-        #     'https': 'https://user:pass@host:port',
-        #     'no_proxy': 'localhost,127.0.0.1'
-        # }
-    }
+    capabilities = options.to_capabilities()
 
     return webdriver.Remote(
         command_executor="http://localhost:4444/wd/hub",
-        options=options,
-        seleniumwire_options=seleniumwire_options,
+        desired_capabilities=capabilities,
+        seleniumwire_options={
+            "auto_config": False,
+            "addr": public_ip,
+            "port": proxy_port,
+        },
     )
 
 
