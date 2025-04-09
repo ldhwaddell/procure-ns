@@ -12,7 +12,6 @@ def build_remote_webdriver():
     user_agent = UserAgent(platforms=["desktop"]).random
     options.add_argument(f"user-agent={user_agent}")
     options.add_argument("window-size=1920,1080")
-
     options.add_argument("--headless=new")
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
@@ -24,7 +23,32 @@ def build_remote_webdriver():
     ...
 
 
-def build_remote_webdriver_selwire(): ...
+def build_remote_webdriver_selwire():
+    from seleniumwire import webdriver
+    from selenium.webdriver.chrome.options import Options
+
+    options = Options()
+    user_agent = UserAgent(platforms=["desktop"]).random
+    options.add_argument(f"user-agent={user_agent}")
+    options.add_argument("window-size=1920,1080")
+    options.add_argument("--headless=new")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+
+    seleniumwire_options = {
+        # Example: you can add a proxy or other intercept settings
+        # 'proxy': {
+        #     'http': 'http://user:pass@host:port',
+        #     'https': 'https://user:pass@host:port',
+        #     'no_proxy': 'localhost,127.0.0.1'
+        # }
+    }
+
+    return webdriver.Remote(
+        command_executor="http://localhost:4444/wd/hub",
+        options=options,
+        seleniumwire_options=seleniumwire_options,
+    )
 
 
 def build_remote_webdriver_selwire_proxy(): ...
@@ -33,7 +57,7 @@ def build_remote_webdriver_selwire_proxy(): ...
 def main():
     # url = "https://procurement-portal.novascotia.ca/tenders"
     url = "https://www.whatismyip.com/"
-    driver = build_remote_webdriver()
+    driver = build_remote_webdriver_selwire()
 
     try:
         driver.get(url)
