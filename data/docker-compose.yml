@@ -1,8 +1,15 @@
 services:
-  selenium:
-    container_name: remote-chromedriver
-    image: selenium/standalone-chrome:126.0.6478.182-20250323
-    shm_size: 2gb
-    restart: always
+  chrome:
+    image: zenika/alpine-chrome:with-puppeteer
+    container_name: chrome-headless
     ports:
-      - "127.0.0.1:4444:4444"
+      - "localhost:9222:9222"
+    command: >
+      chromium-browser
+      --no-sandbox
+      --headless
+      --disable-gpu
+      --remote-debugging-address=0.0.0.0
+      --remote-debugging-port=9222
+    shm_size: "2gb"
+

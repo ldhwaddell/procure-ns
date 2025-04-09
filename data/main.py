@@ -1,93 +1,78 @@
-import time
+from dotenv import load_dotenv
+from playwright.sync_api import sync_playwright
 import json
+import socket
+import random
+import os
 
-from fake_useragent import UserAgent
+load_dotenv()
 
 
-def build_remote_webdriver():
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
+def resolve_super_proxy() -> str:
+    return socket.gethostbyname("brd.superproxy.io")
 
-    options = Options()
-    user_agent = UserAgent(platforms=["desktop"]).random
-    options.add_argument(f"user-agent={user_agent}")
-    options.add_argument("window-size=1920,1080")
-    options.add_argument("--headless=new")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    return webdriver.Remote(
-        command_executor="http://localhost:4444/wd/hub",
-        options=options,
+
+def get_proxy_url(username: str, password: str, proxy_ip: str = None) -> dict:
+    proxy_ip = proxy_ip or resolve_super_proxy()
+    port = 33335
+    session_id = str(random.random())
+    return {
+        "server": f"http://{proxy_ip}:{port}",
+        "username": f"{username}-session-{session_id}",
+        "password": password,
+    }
+
+
+TARGET_URL = "https://procurement-portal.novascotia.ca/tenders"
+WATCH_REQUEST = "https://procurement-portal.novascotia.ca/procurementui/authenticate"
+
+username = os.getenv("PROXY_USER")
+password = os.getenv("PROXY_PASS")
+proxy_conf = get_proxy_url(username, password)
+
+with sync_playwright() as p:
+    browser = p.chromium.connect_over_cdp("http://localhost:9222")
+    context = browser.new_context(
+        proxy=proxy_conf,
+        user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.78 Safari/537.36",
+        viewport={"width": 1280, "height": 800},
+        device_scale_factor=1,
+        is_mobile=False,
+        has_touch=False,
     )
 
-    ...
+    context.add_init_script("""
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+    Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
+    """)
 
+    def handle_request(request):
+        if request.url == WATCH_REQUEST and request.method == "POST":
+            print("\n REQUEST MATCHED:")
+            print(f"Method: {request.method}")
+            print(f"URL: {request.url}")
+            print(f"Headers: {request.headers}")
+            print(f"Post data: {request.post_data}\n")
 
-def build_remote_webdriver_selwire():
-    from seleniumwire import webdriver
-    from selenium.webdriver.chrome.options import Options
+    def handle_response(response):
+        if response.url == WATCH_REQUEST:
+            print("\n RESPONSE RECEIVED:")
+            print(f"Status: {response.status}")
+            print(f"URL: {response.url}")
+            try:
+                print(f"Body: {response.text()[:300]}...\n")  # truncate for readability
+            except Exception as e:
+                print(f"Unable to read response body: {e}\n")
 
-    public_ip = "178.156.171.122"
-    proxy_port = 12345
+    context.on("request", handle_request)
+    context.on("response", handle_response)
 
-    options = Options()
-    user_agent = UserAgent(platforms=["desktop"]).random
-    options.add_argument(f"user-agent={user_agent}")
-    options.add_argument("window-size=1920,1080")
-    options.add_argument("--headless=new")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--ignore-certificate-errors")
-    options.add_argument("--disable-extensions")
-    options.add_argument("--disable-infobars")
-    options.add_argument(f"--proxy-server={public_ip}:{proxy_port}")
+    page = context.new_page()
+    page.goto(TARGET_URL, timeout=60000, wait_until="domcontentloaded")
+    page.wait_for_timeout(2000)
+    cookies = context.cookies()
+    print("\n🍪 ALL COOKIES:\n")
+    print(json.dumps(cookies, indent=2))
 
-    capabilities = options.to_capabilities()
-
-    return webdriver.Remote(
-        command_executor="http://localhost:4444/wd/hub",
-        desired_capabilities=capabilities,
-        seleniumwire_options={
-            "auto_config": False,
-            "addr": public_ip,
-            "port": proxy_port,
-        },
-    )
-
-
-def build_remote_webdriver_selwire_proxy(): ...
-
-
-def main():
-    # url = "https://procurement-portal.novascotia.ca/tenders"
-    url = "https://www.whatismyip.com/"
-    driver = build_remote_webdriver_selwire()
-
-    try:
-        driver.get(url)
-
-        print(driver.title)
-
-        print(driver.page_source)
-
-        # print("Waiting for 10")
-        # driver.implicitly_wait(10)
-        # for request in driver.requests:
-        #     if request.response and "authenticate" in request.url:
-        #         try:
-        #             body = request.response.body.decode("utf-8")
-        #             data = json.loads(body)
-        #             token = data.get("jwttoken")
-        #             if token:
-        #                 print("Extracted Bearer Token:\n", token)
-        #                 break
-        #         except Exception as e:
-        #             print("Failed to parse response:", e)
-        # print("Waiting for 10 again")
-        # time.sleep(10)
-    finally:
-        driver.quit()
-
-
-if __name__ == "__main__":
-    main()
+    browser.close()
