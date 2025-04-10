@@ -78,7 +78,6 @@ def send_authenticated_request(auth_data: Dict[str, str]):
     headers = {
         "Accept": "application/json, text/plain, */*",
         "Authorization": f"Bearer {auth_data['jwt']}",
-        "Content-Length": "0",
         "Connection": "keep-alive",
         "DNT": "1",
         "Sec-Fetch-Dest": "empty",
@@ -88,7 +87,9 @@ def send_authenticated_request(auth_data: Dict[str, str]):
         "Referer": "https://procurement-portal.novascotia.ca/tenders",
         "User-Agent": auth_data["user_agent"],
     }
-    url = "https://procurement-portal.novascotia.ca/procurementui/tenders?page=1&numberOfRecords=50000&sortType=POSTED_DATE_DESC&keyword="
+
+    records = 50000
+    url = f"https://procurement-portal.novascotia.ca/procurementui/tenders?page=1&numberOfRecords={records}&sortType=POSTED_DATE_DESC&keyword="
     body = {"filters": [{"key": "tenderStatus", "values": ["AWARDED"]}]}
 
     cookies = httpx.Cookies()
