@@ -89,13 +89,14 @@ def send_authenticated_request(auth_data: Dict[str, str]):
         "User-Agent": auth_data["user_agent"],
     }
     url = "https://procurement-portal.novascotia.ca/procurementui/tenders?page=1&numberOfRecords=50000&sortType=POSTED_DATE_DESC&keyword="
+    body = {"filters": [{"key": "tenderStatus", "values": ["AWARDED"]}]}
 
     cookies = httpx.Cookies()
     for cookie in auth_data["cookies"]:
         cookies.set(cookie["name"], cookie["value"], domain=cookie["domain"])
 
     with httpx.Client(cookies=cookies, headers=headers, timeout=30) as client:
-        response = client.post(url)
+        response = client.post(url, json=body)
         response.raise_for_status()
         return response.json()
 
