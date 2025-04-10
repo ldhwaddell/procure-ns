@@ -34,7 +34,7 @@ def launch_browser_and_get_auth(proxy_conf: Dict[str, str]):
         "https://procurement-portal.novascotia.ca/procurementui/authenticate"
     )
     jwt_token = None
-    ua = UserAgent(platforms="desktop")
+    ua = UserAgent(platforms="desktop").random
 
     with sync_playwright() as p:
         browser = p.chromium.connect_over_cdp("http://localhost:9222")
@@ -112,3 +112,6 @@ def scrape_tenders_job():
     auth_data = launch_browser_and_get_auth(proxy_conf)
     data = send_authenticated_request(auth_data)
     save_tenders(data)
+
+
+scrape_tenders_job()
