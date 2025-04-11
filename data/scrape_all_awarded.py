@@ -1,31 +1,9 @@
 from typing import Dict
-from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 import json
-import socket
-import random
-import os
 import httpx
 from fake_useragent import UserAgent
-
-load_dotenv()
-
-
-def resolve_proxy() -> str:
-    return socket.gethostbyname("brd.superproxy.io")
-
-
-def get_proxy_conf(proxy_ip: str) -> Dict[str, str]:
-    username = os.getenv("PROXY_USER")
-    password = os.getenv("PROXY_PASS")
-    port = 33335
-    session_id = str(random.random())
-
-    return {
-        "server": f"http://{proxy_ip}:{port}",
-        "username": f"{username}-session-{session_id}",
-        "password": password,
-    }
+from utils import resolve_proxy_ip, get_proxy_conf
 
 
 def launch_browser_and_get_auth(proxy_conf: Dict[str, str]):
@@ -35,6 +13,11 @@ def launch_browser_and_get_auth(proxy_conf: Dict[str, str]):
     )
     jwt_token = None
     ua = UserAgent(platforms="desktop").random
+    proxy_conf = {
+        "server": f"http://{proxy_conf['server']}",
+        "username": proxy_conf["username"],
+        "password": proxy_conf["password"],
+    }
 
     with sync_playwright() as p:
         browser = p.chromium.connect_over_cdp("http://localhost:9222")
@@ -109,7 +92,7 @@ def save_tenders(data: Dict):
 
 
 def scrape_tenders_job():
-    ip = resolve_proxy()
+    ip = resolve_proxy_ip()
     proxy_conf = get_proxy_conf(ip)
     auth_data = launch_browser_and_get_auth(proxy_conf)
     data = send_authenticated_request(auth_data)

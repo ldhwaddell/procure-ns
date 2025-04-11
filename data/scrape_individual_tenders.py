@@ -1,36 +1,13 @@
 import httpx
-from dotenv import load_dotenv
-import socket
-import os
 import random
-from typing import Dict
 import asyncio
-
-load_dotenv()
-
-
-def rand(min: int = 1, max: int = 4):
-    """Get a random interval in [min, max]"""
-    return random.uniform(min, max)
-
-
-def resolve_proxy_ip() -> str:
-    return socket.gethostbyname("brd.superproxy.io")
-
-
-def get_proxy_url(proxy_ip: str) -> Dict[str, str]:
-    username = os.getenv("PROXY_USER")
-    password = os.getenv("PROXY_PASS")
-    port = 33335
-    session_id = str(random.random())
-
-    return f"http://{username}-session-{session_id}:{password}@{proxy_ip}:{port}"
+from utils import resolve_proxy_ip, get_proxy_conf
 
 
 class SingleSessionRetriever:
     def __init__(self, proxy_ip: str):
-        self._proxy_url = get_proxy_url(proxy_ip)
-        print(self._proxy_url)
+        proxy_conf = get_proxy_conf(proxy_ip)
+        self._proxy_url = f"http://{proxy_conf['username']}:{proxy_conf['password']}@{proxy_conf['server']}"
 
     async def retrieve(self, url: str, timeout: int):
         async with httpx.AsyncClient(proxy=self._proxy_url, timeout=timeout) as client:
