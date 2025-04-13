@@ -16,7 +16,7 @@ partitioned_asset_job = dg.define_asset_job(
 
 
 @dg.asset(compute_kind="dwh", group_name="ingestion")
-def test_dwh(dwh: DataWarehouseResource) -> None:
+def test_dwh(dwh: DataWarehouseResource) -> dg.MaterializeResult:
     with dwh.connect() as conn:
         with conn.cursor() as cursor:
             # Built-in query to list tables in the current schema (should return empty if no user tables exist)
@@ -28,6 +28,13 @@ def test_dwh(dwh: DataWarehouseResource) -> None:
 
             tables = cursor.fetchall()
             print("Tables in public schema:", tables)
+
+    return dg.MaterializeResult(
+        metadata={
+            "table_count": dg.MetadataValue.int(len(tables)),
+            "test": dg.MetadataValue.md("md test"),
+        }
+    )
 
 
 defs = dg.Definitions(
