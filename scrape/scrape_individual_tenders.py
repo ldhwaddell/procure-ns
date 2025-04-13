@@ -35,7 +35,7 @@ class SingleSessionRetriever:
             try:
                 response = await client.post(url, json={})
                 response.raise_for_status()
-                return await response.json()
+                return response.json()
             except httpx.HTTPStatusError as e:
                 print(f"Request failed: {e}, Type: {type(e).__name__}")
                 return None
@@ -100,7 +100,6 @@ def main():
         session_requests_limit=10,
         session_failures_limit=2,
         proxy_ip=ip,
-        auth_data=auth_data,
     )
 
     asyncio.run(
@@ -109,6 +108,7 @@ def main():
             timeout=10,
             parallel_sessions_limit=3,
             callback=callback,
+            auth_data=auth_data,
         )
     )
 
