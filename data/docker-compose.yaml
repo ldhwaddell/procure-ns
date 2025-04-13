@@ -112,3 +112,8 @@ networks:
   dagster_network:
     driver: bridge
     name: dagster_network
+
+volumes:
+  dwh:
+  postgres_volume:
+    name: dagster_postgres_volume
