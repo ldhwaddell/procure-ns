@@ -1,5 +1,6 @@
 import dagster as dg
 from tenders.resources import DataWarehouseResource
+from dagster_docker import docker_executor
 
 
 @dg.asset(
@@ -37,7 +38,9 @@ def test_dwh(dwh: DataWarehouseResource) -> dg.MaterializeResult:
     )
 
 
-dwh_job = dg.define_asset_job(name="dwh_job", selection=["test_dwh"])
+dwh_job = dg.define_asset_job(
+    name="dwh_job", selection=["test_dwh"], executor_def=docker_executor
+)
 
 
 defs = dg.Definitions(
