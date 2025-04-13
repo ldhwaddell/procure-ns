@@ -1,4 +1,4 @@
-# import socket
+import socket
 import docker
 from playwright.sync_api import sync_playwright
 from fake_useragent import UserAgent
@@ -34,12 +34,12 @@ def spawn_headless_chrome_container(timeout: int = 120, interval: int = 3):
         pass
 
     container = client.containers.run(
-        "mcr.microsoft.com/playwright:v1.51.1-noble",
+        "zenika/alpine-chrome:with-puppeteer",
         name=container_name,
         command=(
-            "chromium "
+            "chromium-browser "
             "--no-sandbox "
-            "--headless=new "
+            "--headless "
             "--disable-gpu "
             "--remote-debugging-address=0.0.0.0 "
             "--remote-debugging-port=9222"
@@ -55,6 +55,7 @@ def spawn_headless_chrome_container(timeout: int = 120, interval: int = 3):
             resp = httpx.get(
                 "http://chrome-headless-temp:9222/json/version", timeout=1.0
             )
+            print(resp.json())
             if resp.status_code == 200 and "webSocketDebuggerUrl" in resp.json():
                 return container
         except Exception:
