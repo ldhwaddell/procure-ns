@@ -110,6 +110,8 @@ services:
       DWH_POSTGRES_USER: ${DWH_POSTGRES_USER}
       DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD}
       DWH_POSTGRES_DB: ${DWH_POSTGRES_DB}
+      PROXY_USER: ${PROXY_USER}
+      PROXY_PASSWORD: ${PROXY_PASSWORD}
     volumes: # Make docker client accessible, so we can launch containers using host docker
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/io_manager_storage:/tmp/io_manager_storage
