@@ -36,6 +36,8 @@ services:
   # its own port, and have its own entry in the workspace.yaml file that's loaded by the
       # webserver.
   tenders:
+    # Ensure we arent using stale tender file
++   image: tenders:latest
     build:
       context: ./tenders
       dockerfile: Dockerfile
