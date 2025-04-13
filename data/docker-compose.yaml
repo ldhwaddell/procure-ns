@@ -37,7 +37,7 @@ services:
       # webserver.
   tenders:
     # Ensure we arent using stale tender file
-+   image: tenders:latest
+    image: tenders:latest
     build:
       context: ./tenders
       dockerfile: Dockerfile
@@ -54,6 +54,7 @@ services:
       - dagster_network
     volumes:
       - /opt/dagster/dagster_home:/tmp/dagster-data
+      - /var/run/docker.sock:/var/run/docker.sock
 
 
   # This service runs dagster-webserver, which loads your user code from the user code container.
