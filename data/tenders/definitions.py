@@ -3,19 +3,6 @@ from tenders.resources import DataWarehouseResource
 from dagster_docker import docker_executor
 
 
-@dg.asset(
-    op_tags={"operation": "example"},
-    partitions_def=dg.DailyPartitionsDefinition("2024-01-01"),
-)
-def example_asset(context: dg.AssetExecutionContext):
-    context.log.info(context.partition_key)
-
-
-partitioned_asset_job = dg.define_asset_job(
-    "partitioned_job", selection=[example_asset]
-)
-
-
 @dg.asset(compute_kind="dwh", group_name="ingestion")
 def test_dwh(dwh: DataWarehouseResource) -> dg.MaterializeResult:
     with dwh.connect() as conn:
@@ -42,10 +29,12 @@ dwh_job = dg.define_asset_job(
     name="dwh_job", selection=["test_dwh"], executor_def=docker_executor
 )
 
+dwh_job_2 = dg.define_asset_job(name="dwh_job_2", selection=["test_dwh"])
+
 
 defs = dg.Definitions(
-    assets=[example_asset, test_dwh],
-    jobs=[partitioned_asset_job, dwh_job],
+    assets=[test_dwh],
+    jobs=[dwh_job, dwh_job_2],
     resources={
         "dwh": DataWarehouseResource(
             username=dg.EnvVar("DWH_POSTGRES_USER"),
