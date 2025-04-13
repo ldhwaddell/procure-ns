@@ -102,6 +102,9 @@ services:
       DAGSTER_POSTGRES_USER: ${DAGSTER_POSTGRES_USER}
       DAGSTER_POSTGRES_PASSWORD: ${DAGSTER_POSTGRES_PASSWORD}
       DAGSTER_POSTGRES_DB: ${DAGSTER_POSTGRES_DB}
+      DWH_POSTGRES_USER: ${DWH_POSTGRES_USER}
+      DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD}
+      DWH_POSTGRES_DB: ${DWH_POSTGRES_DB}
     volumes: # Make docker client accessible, so we can launch containers using host docker
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/io_manager_storage:/tmp/io_manager_storage
