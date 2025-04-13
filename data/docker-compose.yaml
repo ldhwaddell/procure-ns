@@ -20,7 +20,7 @@ services:
   tenders:
     build:
       context: ./tenders
-      dockerfile: ./tenders/Dockerfile
+      dockerfile: Dockerfile
     restart: always
     environment:
       DAGSTER_POSTGRES_USER: ${DAGSTER_POSTGRES_USER}
