@@ -17,6 +17,8 @@ run_launcher:
       - DWH_POSTGRES_USER
       - DWH_POSTGRES_PASSWORD
       - DWH_POSTGRES_DB
+      - PROXY_USER
+      - PROXY_PASSWORD
     network: dagster_network
     container_kwargs:
       volumes: # Make docker client accessible to any launched containers as well
