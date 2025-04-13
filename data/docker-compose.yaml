@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: ${DAGSTER_POSTGRES_USER}
       POSTGRES_PASSWORD: ${DAGSTER_POSTGRES_PASSWORD}
-      POSTGRES_DB: ${DAGSTER_POSTRES_DB}
+      POSTGRES_DB: ${DAGSTER_POSTGRES_DB}
     networks:
       - dagster_network
 
@@ -23,7 +23,7 @@ services:
     environment:
       DAGSTER_POSTGRES_USER: ${DAGSTER_POSTGRES_USER}
       DAGSTER_POSTGRES_PASSWORD: ${DAGSTER_POSTGRES_PASSWORD}
-      DAGSTER_POSTGRES_DB: ${DAGSTER_POSTRES_DB}
+      DAGSTER_POSTGRES_DB: ${DAGSTER_POSTGRES_DB}
       DAGSTER_CURRENT_IMAGE: "tenders"
     networks:
       - dagster_network
@@ -52,7 +52,7 @@ services:
     environment:
       DAGSTER_POSTGRES_USER: ${DAGSTER_POSTGRES_USER}
       DAGSTER_POSTGRES_PASSWORD: ${DAGSTER_POSTGRES_PASSWORD}
-      DAGSTER_POSTGRES_DB: ${DAGSTER_POSTRES_DB}
+      DAGSTER_POSTGRES_DB: ${DAGSTER_POSTGRES_DB}
     volumes: # Make docker client accessible, so we can terminate containers from the webserver
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/io_manager_storage:/tmp/io_manager_storage
@@ -74,7 +74,7 @@ services:
     environment:
       DAGSTER_POSTGRES_USER: ${DAGSTER_POSTGRES_USER}
       DAGSTER_POSTGRES_PASSWORD: ${DAGSTER_POSTGRES_PASSWORD}
-      DAGSTER_POSTGRES_DB: ${DAGSTER_POSTRES_DB}
+      DAGSTER_POSTGRES_DB: ${DAGSTER_POSTGRES_DB}
     volumes: # Make docker client accessible, so we can launch containers using host docker
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/io_manager_storage:/tmp/io_manager_storage
