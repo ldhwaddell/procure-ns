@@ -411,6 +411,7 @@ source = { editable = "." }
 dependencies = [
     { name = "dagster" },
     { name = "dagster-cloud" },
+    { name = "dagster-webserver" },
 ]
 
 [package.optional-dependencies]
@@ -423,6 +424,7 @@ dev = [
 requires-dist = [
     { name = "dagster" },
     { name = "dagster-cloud" },
+    { name = "dagster-webserver", specifier = ">=1.10.10" },
     { name = "dagster-webserver", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'dev'" },
 ]
