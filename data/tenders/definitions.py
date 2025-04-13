@@ -31,7 +31,7 @@ def test_dwh(dwh: DataWarehouseResource) -> None:
 
 
 defs = dg.Definitions(
-    assets=[example_asset],
+    assets=[example_asset, test_dwh],
     jobs=[partitioned_asset_job],
     resources={
         "dwh": DataWarehouseResource(
