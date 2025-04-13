@@ -9,7 +9,8 @@ RUN pip install \
 	dagster-docker \
 	docker \
 	playwright \
-	fake-useragent
+	fake-useragent \
+	httpx
 
 
 # Add repository code

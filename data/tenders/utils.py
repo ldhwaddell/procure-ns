@@ -5,6 +5,16 @@ from fake_useragent import UserAgent
 from typing import Dict
 import json
 import time
+import httpx
+
+
+def get_ws_url():
+    with httpx.Client() as client:
+        response = client.get("http://chrome-headless-temp:9222/json/version")
+        response.raise_for_status()
+        return response.json()["webSocketDebuggerUrl"].replace(
+            "0.0.0.0", "chrome-headless-temp"
+        )
 
 
 def is_port_open(host: str, port: int, timeout: float = 1.0) -> bool:
@@ -74,7 +84,7 @@ def launch_browser_and_get_auth(proxy_conf: Dict[str, str]):
 
     try:
         with sync_playwright() as p:
-            browser = p.chromium.connect_over_cdp("http://localhost:9222")
+            browser = p.chromium.connect_over_cdp(get_ws_url())
             context = browser.new_context(
                 proxy=proxy_conf,
                 user_agent=ua,
