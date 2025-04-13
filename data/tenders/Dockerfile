@@ -6,7 +6,11 @@ FROM python:3.10-slim
 RUN pip install \
 	dagster \
 	dagster-postgres \
-	dagster-docker 
+	dagster-docker \
+	docker \
+	playwright \
+	fake-useragent
+
 
 # Add repository code
 

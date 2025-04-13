@@ -1,6 +1,7 @@
 import dagster as dg
-from tenders.resources import DataWarehouseResource
+from tenders.resources import DataWarehouseResource, ProxyResource
 from sqlalchemy.sql import text
+from tenders.utils import launch_browser_and_get_auth
 # from dagster_docker import docker_executor
 
 
@@ -69,6 +70,18 @@ def test_dwh_insert(dwh: DataWarehouseResource) -> dg.MaterializeResult:
     )
 
 
+@dg.asset(compute_kind="docker", group_name="ingestion")
+def new_tenders(proxy: ProxyResource) -> dg.MaterializeResult:
+    proxy_conf = proxy.get_proxy_conf()
+    auth = launch_browser_and_get_auth(proxy_conf)
+
+    return dg.MaterializeResult(
+        metadata={
+            "token": dg.MetadataValue.text(auth["jwt"]),
+        }
+    )
+
+
 # dwh_job = dg.define_asset_job(
 #     name="dwh_job", selection=["test_dwh"], executor_def=docker_executor
 # )
@@ -77,13 +90,17 @@ def test_dwh_insert(dwh: DataWarehouseResource) -> dg.MaterializeResult:
 #
 
 defs = dg.Definitions(
-    assets=[test_dwh, test_dwh_insert],
+    assets=[test_dwh, test_dwh_insert, new_tenders],
     # jobs=[dwh_job, dwh_job_2],
     resources={
         "dwh": DataWarehouseResource(
             username=dg.EnvVar("DWH_POSTGRES_USER"),
             password=dg.EnvVar("DWH_POSTGRES_PASSWORD"),
             db=dg.EnvVar("DWH_POSTGRES_DB"),
-        )
+        ),
+        "proxy": ProxyResource(
+            username=dg.EnvVar("PROXY_USER"),
+            password=dg.EnvVar("PROXY_PASSWORD"),
+        ),
     },
 )

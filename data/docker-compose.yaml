@@ -50,6 +50,8 @@ services:
       DWH_POSTGRES_USER: ${DWH_POSTGRES_USER}
       DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD}
       DWH_POSTGRES_DB: ${DWH_POSTGRES_DB}
+      PROXY_USER: ${PROXY_USER}
+      PROXY_PASSWORD: ${PROXY_PASSWORD}
     networks:
       - dagster_network
     volumes:
