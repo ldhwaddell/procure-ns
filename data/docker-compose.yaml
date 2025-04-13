@@ -1,4 +1,22 @@
 services:
+
+  dwh:
+    image: postgres:15
+    container_name: dwh
+    hostname: dwh
+    ports:
+      - localhost:5432:5432
+    volumes:
+      - dwh:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${DWH_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${DWH_POSTGRES_DB}
+    networks:
+      - docker_network
+
+  # ---------- Dagster Services ---------- 
+
   # This service runs the postgres DB used by dagster for run storage, schedule storage,
   # and event log storage.
   dagster_postgresql:

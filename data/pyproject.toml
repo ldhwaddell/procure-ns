@@ -4,4 +4,9 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "dagster>=1.10.10",
+    "dagster-docker>=0.26.10",
+    "dagster-postgres>=0.26.10",
+    "psycopg2-binary>=2.9.10",
+]
