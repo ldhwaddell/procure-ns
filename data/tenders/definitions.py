@@ -27,24 +27,46 @@ def test_dwh(dwh: DataWarehouseResource) -> dg.MaterializeResult:
         }
     )
 
-    # with dwh.connect() as conn:
-    #     with conn.cursor() as cursor:
-    #         # Built-in query to list tables in the current schema (should return empty if no user tables exist)
-    #         cursor.execute("""
-    #             SELECT table_name
-    #             FROM information_schema.tables
-    #             WHERE table_schema = 'public';
-    #         """)
-    #
-    #         tables = cursor.fetchall()
-    #         print("Tables in public schema:", tables)
-    #
-    # return dg.MaterializeResult(
-    #     metadata={
-    #         "table_count": dg.MetadataValue.int(len(tables)),
-    #         "test": dg.MetadataValue.md("md test"),
-    #     }
-    # )
+
+@dg.asset(compute_kind="dwh", group_name="ingestion")
+def test_dwh_insert(dwh: DataWarehouseResource) -> dg.MaterializeResult:
+    Session = dwh.get_session()
+
+    with Session() as session:
+        # Create table (if not exists)
+        session.execute(
+            text("""
+            CREATE TABLE IF NOT EXISTS test_data (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                value INTEGER
+            );
+        """)
+        )
+
+        # Insert test rows
+        session.execute(
+            text("""
+            INSERT INTO test_data (name, value) VALUES
+            ('alpha', 10),
+            ('beta', 20),
+            ('gamma', 30)
+            ON CONFLICT DO NOTHING;
+        """)
+        )
+
+        # Preview rows
+        result = session.execute(text("SELECT * FROM test_data LIMIT 10;"))
+        column_names = result.keys()
+        count_result = session.execute(text("SELECT COUNT(*) FROM test_data;"))
+        row_count = count_result.scalar_one()
+
+    return dg.MaterializeResult(
+        metadata={
+            "row_count": dg.MetadataValue.int(row_count),
+            "columns": dg.MetadataValue.json(list(column_names)),
+        }
+    )
 
 
 # dwh_job = dg.define_asset_job(
@@ -55,7 +77,7 @@ def test_dwh(dwh: DataWarehouseResource) -> dg.MaterializeResult:
 #
 
 defs = dg.Definitions(
-    assets=[test_dwh],
+    assets=[test_dwh, test_dwh_insert],
     # jobs=[dwh_job, dwh_job_2],
     resources={
         "dwh": DataWarehouseResource(
