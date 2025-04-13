@@ -37,9 +37,12 @@ def test_dwh(dwh: DataWarehouseResource) -> dg.MaterializeResult:
     )
 
 
+dwh_job = dg.define_asset_job(name="dwh_job", selection=["test_dwh"])
+
+
 defs = dg.Definitions(
     assets=[example_asset, test_dwh],
-    jobs=[partitioned_asset_job],
+    jobs=[partitioned_asset_job, dwh_job],
     resources={
         "dwh": DataWarehouseResource(
             username=dg.EnvVar("DWH_POSTGRES_USER"),
