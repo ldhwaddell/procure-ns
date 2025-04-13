@@ -17,17 +17,6 @@ def get_ws_url():
         )
 
 
-def is_port_open(host: str, port: int, timeout: float = 1.0) -> bool:
-    """Check if the specified host and port are open."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.settimeout(timeout)
-        try:
-            sock.connect((host, port))
-            return True
-        except (socket.timeout, ConnectionRefusedError):
-            return False
-
-
 def spawn_headless_chrome_container(timeout: int = 120, interval: int = 3):
     """
     Spawns a headless Chrome container and waits until it is ready.
@@ -37,6 +26,12 @@ def spawn_headless_chrome_container(timeout: int = 120, interval: int = 3):
     """
     client = docker.from_env()
     container_name = "chrome-headless-temp"
+
+    try:
+        existing = client.containers.get(container_name)
+        existing.remove(force=True)
+    except docker.errors.NotFound:
+        pass
 
     container = client.containers.run(
         "zenika/alpine-chrome:with-puppeteer",
@@ -56,9 +51,15 @@ def spawn_headless_chrome_container(timeout: int = 120, interval: int = 3):
 
     elapsed_time = 0
     while elapsed_time < timeout:
-        container.reload()
-        if container.status == "running" and is_port_open(container_name, 9222):
-            return container
+        try:
+            resp = httpx.get(
+                "http://chrome-headless-temp:9222/json/version", timeout=1.0
+            )
+            if resp.status_code == 200 and "webSocketDebuggerUrl" in resp.json():
+                return container
+        except Exception:
+            pass
+
         time.sleep(interval)
         elapsed_time += interval
 
