@@ -1,4 +1,4 @@
-import socket
+# import socket
 import docker
 from playwright.sync_api import sync_playwright
 from fake_useragent import UserAgent
@@ -34,12 +34,12 @@ def spawn_headless_chrome_container(timeout: int = 120, interval: int = 3):
         pass
 
     container = client.containers.run(
-        "zenika/alpine-chrome:with-puppeteer",
+        "mcr.microsoft.com/playwright:v1.51.1-noble",
         name=container_name,
         command=(
-            "chromium-browser "
+            "chromium "
             "--no-sandbox "
-            "--headless "
+            "--headless=new "
             "--disable-gpu "
             "--remote-debugging-address=0.0.0.0 "
             "--remote-debugging-port=9222"
