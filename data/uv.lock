@@ -197,6 +197,7 @@ dependencies = [
     { name = "dagster-docker" },
     { name = "dagster-postgres" },
     { name = "psycopg2-binary" },
+    { name = "sqlalchemy" },
 ]
 
 [package.metadata]
@@ -205,6 +206,7 @@ requires-dist = [
     { name = "dagster-docker", specifier = ">=0.26.10" },
     { name = "dagster-postgres", specifier = ">=0.26.10" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
+    { name = "sqlalchemy", specifier = ">=2.0.40" },
 ]
 
 [[package]]
