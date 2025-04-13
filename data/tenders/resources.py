@@ -4,22 +4,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
 
-# class DataWarehouseResource(dg.ConfigurableResource):
-#     username: str
-#     password: str
-#     db: str
-#
-#     def connect(self) -> psycopg2.extensions.connection:
-#         return psycopg2.connect(
-#             host="dwh",  # matches `hostname` and `container_name`
-#             port=5432,  # default Postgres port
-#             user=self.username,
-#             password=self.password,
-#             dbname=self.db,
-#         )
-#
-
-
 class DataWarehouseResource(dg.ConfigurableResource):
     username: str
     password: str
