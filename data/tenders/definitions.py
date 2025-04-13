@@ -1,6 +1,5 @@
 import dagster as dg
-from resources import DataWarehouseResource
-from tenders import resources
+from tenders.resources import DataWarehouseResource
 
 
 @dg.asset(
