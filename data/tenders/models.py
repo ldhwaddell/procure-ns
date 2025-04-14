@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 
-from sqlalchemy import Integer, Date, func
+from sqlalchemy import Integer, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -19,7 +19,7 @@ class NewTender(Base):
     procurementEntity: Mapped[Optional[str]]
     endUserEntity: Mapped[Optional[str]]
     closingDate: Mapped[Optional[datetime]]
-    postDate: Mapped[Optional[Date]]
+    postDate: Mapped[Optional[date]]
     tenderStatus: Mapped[Optional[str]]
 
 
@@ -33,6 +33,6 @@ class MasterTender(Base):
     procurementEntity: Mapped[Optional[str]]
     endUserEntity: Mapped[Optional[str]]
     closingDate: Mapped[Optional[datetime]]
-    postDate: Mapped[Optional[Date]]
+    postDate: Mapped[Optional[date]]
     tenderStatus: Mapped[Optional[str]]
     imported_at: Mapped[datetime] = mapped_column(default=func.now())
