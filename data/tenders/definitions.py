@@ -1,7 +1,10 @@
 import dagster as dg
 from tenders.resources import DataWarehouseResource, ProxyResource
 from sqlalchemy.sql import text
+from sqlalchemy import insert
 from tenders.utils import launch_browser_and_get_auth, send_authenticated_request
+from tenders.models import NewTender
+import datetime
 # from dagster_docker import docker_executor
 
 
@@ -76,56 +79,51 @@ def new_tenders(
 ) -> dg.MaterializeResult:
     proxy_conf = proxy.get_proxy_conf()
     auth = launch_browser_and_get_auth(proxy_conf)
-
     tenders_json = send_authenticated_request(auth)
 
     tenders = tenders_json.get("tenderDataList", [])
 
-    columns = [
-        "id",
-        "tenderId",
-        "title",
-        "solicitationType",
-        "procurementEntity",
-        "endUserEntity",
-        "closingDate",
-        "postDate",
-        "tenderStatus",
+    rows = [
+        {
+            "id": t["id"],
+            "tenderId": t["tenderId"],
+            "title": t.get("title"),
+            "solicitationType": t.get("solicitationType"),
+            "procurementEntity": t.get("procurementEntity"),
+            "endUserEntity": t.get("endUserEntity"),
+            "closingDate": datetime.fromisoformat(t["closingDate"])
+            if t.get("closingDate")
+            else None,
+            "postDate": datetime.fromisoformat(t["postDate"]).date()
+            if t.get("postDate")
+            else None,
+            "tenderStatus": t.get("tenderStatus"),
+        }
+        for t in tenders
     ]
 
-    # Create rows as tuples
-    rows = [tuple(t.get(col) for col in columns) for t in tenders]
+    ddl = """
+        DROP TABLE IF EXISTS new_tenders;
 
-    create_sql = """
-        CREATE TABLE IF NOT EXISTS new_tenders (
-            id INTEGER PRIMARY KEY,
-            tenderId TEXT,
-            title TEXT,
-            solicitationType TEXT,
-            procurementEntity TEXT,
-            endUserEntity TEXT,
-            closingDate TIMESTAMP,
-            postDate DATE,
-            tenderStatus TEXT
+        CREATE TABLE new_tenders (
+            "id" INTEGER PRIMARY KEY,
+            "tenderId" TEXT,
+            "title" TEXT,
+            "solicitationType" TEXT,
+            "procurementEntity" TEXT,
+            "endUserEntity" TEXT,
+            "closingDate" TIMESTAMP,
+            "postDate" DATE,
+            "tenderStatus" TEXT
         )
-    """
-
-    insert_sql = f"""
-        INSERT INTO new_tenders ({", ".join(columns)})
-        VALUES ({", ".join([":{}".format(c) for c in columns])})
     """
 
     Session = dwh.get_session()
     with Session() as session:
-        session.execute(text(create_sql))
-        session.execute(text("TRUNCATE TABLE new_tenders"))
-
-        session.execute_many(
-            text(insert_sql), [dict(zip(columns, row)) for row in rows]
-        )
-
+        session.execute(text(ddl))
+        if rows:
+            session.execute(insert(NewTender), rows)
         session.commit()
-
     return dg.MaterializeResult(
         metadata={
             "records_ingested": dg.MetadataValue.int(len(rows)),
