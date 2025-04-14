@@ -90,7 +90,17 @@ def tender_metadata(
     # insert new tender into master tenders with metadata
 
     for tender in new_tenders:
-        master = MasterTender(**tender)
+        master = MasterTender(
+            id=tender.id,
+            tenderId=tender.tenderId,
+            title=tender.title,
+            solicitationType=tender.solicitationType,
+            procurementEntity=tender.procurementEntity,
+            endUserEntity=tender.endUserEntity,
+            closingDate=tender.closingDate,
+            postDate=tender.postDate,
+            tenderStatus=tender.tenderStatus,
+        )
 
         master.tenderMetadata = TenderMetadata(createdBy="Jerome")
 
