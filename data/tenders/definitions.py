@@ -5,72 +5,6 @@ from sqlalchemy import insert
 from tenders.utils import launch_browser_and_get_auth, send_authenticated_request
 from tenders.models import NewTender
 from datetime import datetime
-# from dagster_docker import docker_executor
-
-
-@dg.asset(compute_kind="dwh", group_name="ingestion")
-def test_dwh(dwh: DataWarehouseResource) -> dg.MaterializeResult:
-    Session = dwh.get_session()
-    with Session() as session:
-        result = session.execute(
-            text("""
-            SELECT table_name
-            FROM information_schema.tables
-            WHERE table_schema = 'public';
-        """)
-        )
-
-        tables = result.fetchall()
-        table_names = [row[0] for row in tables]
-        print("Tables in public schema:", table_names)
-
-    return dg.MaterializeResult(
-        metadata={
-            "table_count": dg.MetadataValue.int(len(tables)),
-            "test": dg.MetadataValue.md("md test"),
-        }
-    )
-
-
-@dg.asset(compute_kind="dwh", group_name="ingestion")
-def test_dwh_insert(dwh: DataWarehouseResource) -> dg.MaterializeResult:
-    Session = dwh.get_session()
-
-    with Session() as session:
-        # Create table (if not exists)
-        session.execute(
-            text("""
-            CREATE TABLE IF NOT EXISTS test_data (
-                id SERIAL PRIMARY KEY,
-                name TEXT NOT NULL,
-                value INTEGER
-            );
-        """)
-        )
-
-        # Insert test rows
-        session.execute(
-            text("""
-            INSERT INTO test_data (name, value) VALUES
-            ('alpha', 10),
-            ('beta', 20),
-            ('gamma', 30)
-            ON CONFLICT DO NOTHING;
-        """)
-        )
-
-        # Preview rows
-        result = session.execute(text("SELECT * FROM test_data LIMIT 10;"))
-        column_names = result.keys()
-        count_result = session.execute(text("SELECT COUNT(*) FROM test_data;"))
-        row_count = count_result.scalar_one()
-
-    return dg.MaterializeResult(
-        metadata={
-            "row_count": dg.MetadataValue.int(row_count),
-            "columns": dg.MetadataValue.json(list(column_names)),
-        }
-    )
 
 
 @dg.asset(compute_kind="docker", group_name="ingestion")
@@ -140,7 +74,7 @@ def new_tenders(
 #
 
 defs = dg.Definitions(
-    assets=[test_dwh, test_dwh_insert, new_tenders],
+    assets=[new_tenders],
     # jobs=[dwh_job, dwh_job_2],
     resources={
         "dwh": DataWarehouseResource(
