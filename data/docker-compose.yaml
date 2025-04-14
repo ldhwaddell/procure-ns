@@ -37,7 +37,7 @@ services:
       # webserver.
   tenders:
     # Ensure we arent using stale tender file
-    image: tenders:latest
+    image: tenders
     build:
       context: ./tenders
       dockerfile: Dockerfile
