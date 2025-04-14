@@ -2,9 +2,15 @@ import dagster as dg
 from tenders.resources import DataWarehouseResource, ProxyResource
 from sqlalchemy.sql import text
 from sqlalchemy import insert, select
-from tenders.utils import launch_browser_and_get_auth, send_authenticated_request
+from tenders.utils import (
+    scrape_tender,
+    launch_browser_and_get_auth,
+    send_authenticated_request,
+    ProxyRotator,
+)
 from tenders.models import NewTender, MasterTender, TenderMetadata
 from datetime import datetime
+import asyncio
 
 
 @dg.asset(compute_kind="docker", group_name="ingestion")
@@ -65,7 +71,9 @@ def new_tenders(
 
         if new_rows:
             session.execute(insert(NewTender), new_rows)
+
         session.commit()
+
     return dg.MaterializeResult(
         metadata={
             "records_ingested": dg.MetadataValue.int(len(new_rows)),
@@ -75,42 +83,35 @@ def new_tenders(
 
 
 @dg.asset(compute_kind="docker", group_name="ingestion", deps=[new_tenders])
-def tender_metadata(
+async def tender_metadata(
     proxy: ProxyResource, dwh: DataWarehouseResource
 ) -> dg.MaterializeResult:
-    Session = dwh.get_session()
-    with Session() as session:
+    parallel_sessions_limit = 10
+    proxy_conf = proxy.get_proxy_conf()
+    auth = launch_browser_and_get_auth(proxy_conf)
+
+    # Step 1: Get all new tenders
+    sync_session = dwh.get_session()
+    with sync_session() as session:
         new_tenders = session.execute(select(NewTender)).scalars().all()
 
-        # proxy_conf = proxy.get_proxy_conf()
-        # auth = launch_browser_and_get_auth(proxy_conf)
+    # Step 2: Process tenders asynchronously
+    async_session = dwh.get_async_session()
 
-        # For each new tender:
-        # pull the metadata
-        # insert new tender into master tenders with metadata
+    semaphore = asyncio.Semaphore(parallel_sessions_limit)
+    rotator = ProxyRotator(10, proxy.get_proxy_conf)
+    timeout = 30
 
-        for tender in new_tenders:
-            master = MasterTender(
-                id=tender.id,
-                tenderId=tender.tenderId,
-                title=tender.title,
-                solicitationType=tender.solicitationType,
-                procurementEntity=tender.procurementEntity,
-                endUserEntity=tender.endUserEntity,
-                closingDate=tender.closingDate,
-                postDate=tender.postDate,
-                tenderStatus=tender.tenderStatus,
-            )
-
-            master.tenderMetadata = TenderMetadata(createdBy="Jerome")
-
-            session.add(master)
-
-        session.commit()
+    tasks = [
+        scrape_tender(t, rotator, auth, async_session, timeout, semaphore)
+        for t in new_tenders
+    ]
+    await asyncio.gather(*tasks)
 
     return dg.MaterializeResult(
         metadata={
             "new_tenders": dg.MetadataValue.int(len(new_tenders)),
+            "tasks": dg.MetadataValue.int(len(tasks)),
         }
     )
 
@@ -137,3 +138,23 @@ defs = dg.Definitions(
         ),
     },
 )
+
+
+# master = MasterTender(
+#     id=tender.id,
+#     tenderId=tender.tenderId,
+#     title=tender.title,
+#     solicitationType=tender.solicitationType,
+#     procurementEntity=tender.procurementEntity,
+#     endUserEntity=tender.endUserEntity,
+#     closingDate=tender.closingDate,
+#     postDate=tender.postDate,
+#     tenderStatus=tender.tenderStatus,
+#             )
+#
+#             master.tenderMetadata = TenderMetadata(createdBy="Jerome")
+#
+#             session.add(master)
+#
+#         session.commit()
+#

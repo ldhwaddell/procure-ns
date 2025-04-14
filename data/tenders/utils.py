@@ -1,13 +1,17 @@
+import asyncio
 import docker
 from docker.models.containers import Container
 from playwright.sync_api import sync_playwright
 from fake_useragent import UserAgent
-from typing import Dict, List, TypedDict
+from typing import Dict, List, TypedDict, Callable
 import json
 import time
 import httpx
 
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+
 from urllib.parse import urlparse, urlunparse
+from tenders.models import NewTender, MasterTender, TenderMetadata
 
 
 class ProxyConf(TypedDict):
@@ -168,3 +172,88 @@ def send_authenticated_request(auth_data: AuthData):
         response = client.post(url, json=body)
         response.raise_for_status()
         return response.json()
+
+
+class ProxyRotator:
+    def __init__(self, session_limit: int, get_config: Callable[[], ProxyConf]):
+        self._session_limit = session_limit
+        self._lock = asyncio.Lock()
+        self._request_count = 0
+        self._get_config = get_config
+        self._proxy_conf = self._get_config()
+
+    async def get_proxy(self) -> str:
+        async with self._lock:
+            self._request_count += 1
+            if self._request_count >= self._session_limit:
+                self._proxy_conf = self._get_config()
+                self._request_count = 0
+            return f"http://{self._proxy_conf['username']}:{self._proxy_conf['password']}@{self._proxy_conf['server']}"
+
+
+async def scrape_tender(
+    tender: NewTender,
+    rotator: ProxyRotator,
+    auth: AuthData,
+    session: async_sessionmaker[AsyncSession],
+    timeout: int,
+    semaphore: asyncio.Semaphore,
+):
+    base_url = (
+        "https://procurement-portal.novascotia.ca/procurementui/tenders?tenderId={}"
+    )
+
+    id = tender.tenderId
+    url = base_url.format(id)
+    async with semaphore:
+        proxy_url = await rotator.get_proxy()
+
+        headers = {
+            "Accept": "application/json, text/plain, */*",
+            "Authorization": f"Bearer {auth['jwt']}",
+            "Connection": "keep-alive",
+            "DNT": "1",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "Origin": "https://procurement-portal.novascotia.ca",
+            "Referer": "https://procurement-portal.novascotia.ca/tenders",
+            "User-Agent": auth["user_agent"],
+            "Content-Type": "application/json",
+        }
+
+        cookies = httpx.Cookies()
+        for cookie in auth["cookies"]:
+            cookies.set(cookie["name"], cookie["value"], domain=cookie["domain"])
+
+        async with httpx.AsyncClient(
+            proxy=proxy_url, cookies=cookies, headers=headers, timeout=timeout
+        ) as client:
+            try:
+                response = await client.post(url, json={})
+                response.raise_for_status()
+                data = await response.json()
+            except httpx.HTTPStatusError as e:
+                print(f"Request failed: {e}, Type: {type(e).__name__}")
+                return
+
+        master = MasterTender(
+            id=tender.id,
+            tenderId=tender.tenderId,
+            title=tender.title,
+            solicitationType=tender.solicitationType,
+            procurementEntity=tender.procurementEntity,
+            endUserEntity=tender.endUserEntity,
+            closingDate=tender.closingDate,
+            postDate=tender.postDate,
+            tenderStatus=tender.tenderStatus,
+        )
+
+        metadata = TenderMetadata(
+            **{k: v for k, v in data.items() if k in TenderMetadata.__table__.columns}
+        )
+        master.tenderMetadata = metadata
+
+        async with session.begin() as s:
+            s.add(master)
+            await s.commit()
