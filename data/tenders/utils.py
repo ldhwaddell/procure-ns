@@ -1,13 +1,25 @@
-import socket
 import docker
+from docker.models.containers import Container
 from playwright.sync_api import sync_playwright
 from fake_useragent import UserAgent
-from typing import Dict
+from typing import Dict, List, TypedDict
 import json
 import time
 import httpx
 
 from urllib.parse import urlparse, urlunparse
+
+
+class ProxyConf(TypedDict):
+    server: str
+    username: str
+    password: str
+
+
+class AuthData(TypedDict):
+    jwt: str
+    cookies: List[Dict]
+    user_agent: str
 
 
 def get_ws_url():
@@ -19,7 +31,7 @@ def get_ws_url():
     return urlunparse(u._replace(netloc=f"chrome-headless-temp:{u.port or 9222}"))
 
 
-def spawn_headless_chrome_container(timeout: int = 120, interval: int = 3):
+def spawn_headless_chrome_container(timeout: int = 120, interval: int = 3) -> Container:
     """
     Spawns a headless Chrome container and waits until it is ready.
 
@@ -73,7 +85,7 @@ def spawn_headless_chrome_container(timeout: int = 120, interval: int = 3):
     raise TimeoutError("Headless Chrome did not become ready before timeout.")
 
 
-def launch_browser_and_get_auth(proxy_conf: Dict[str, str]):
+def launch_browser_and_get_auth(proxy_conf: ProxyConf) -> AuthData:
     TARGET_URL = "https://procurement-portal.novascotia.ca/tenders"
     WATCH_REQUEST = (
         "https://procurement-portal.novascotia.ca/procurementui/authenticate"
@@ -130,7 +142,7 @@ def launch_browser_and_get_auth(proxy_conf: Dict[str, str]):
         chrome_container.remove()
 
 
-def send_authenticated_request(auth_data: Dict[str, str]):
+def send_authenticated_request(auth_data: AuthData):
     headers = {
         "Accept": "application/json, text/plain, */*",
         "Authorization": f"Bearer {auth_data['jwt']}",
@@ -144,7 +156,7 @@ def send_authenticated_request(auth_data: Dict[str, str]):
         "User-Agent": auth_data["user_agent"],
     }
 
-    records = 50000
+    records = 20
     url = f"https://procurement-portal.novascotia.ca/procurementui/tenders?page=1&numberOfRecords={records}&sortType=POSTED_DATE_DESC&keyword="
     body = {"filters": [{"key": "tenderStatus", "values": ["AWARDED"]}]}
 
