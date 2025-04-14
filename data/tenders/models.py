@@ -37,7 +37,7 @@ class MasterTender(Base):
     tenderStatus: Mapped[Optional[str]]
     importedAt: Mapped[datetime] = mapped_column(default=func.now())
     tenderMetadata: Mapped["TenderMetadata"] = relationship(
-        back_populates="master_tenders", cascade="all, delete-orphan"
+        back_populates="tender", cascade="all, delete-orphan"
     )
 
 
