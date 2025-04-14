@@ -4,7 +4,7 @@ from sqlalchemy.sql import text
 from sqlalchemy import insert
 from tenders.utils import launch_browser_and_get_auth, send_authenticated_request
 from tenders.models import NewTender
-import datetime
+from datetime import datetime
 # from dagster_docker import docker_executor
 
 
