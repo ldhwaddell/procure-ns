@@ -214,6 +214,7 @@ dependencies = [
     { name = "httpx" },
     { name = "playwright" },
     { name = "psycopg2-binary" },
+    { name = "python-dotenv" },
     { name = "sqlalchemy" },
 ]
 
@@ -227,6 +228,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "playwright", specifier = ">=1.51.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
+    { name = "python-dotenv", specifier = ">=1.1.0" },
     { name = "sqlalchemy", specifier = ">=2.0.40" },
 ]
 
