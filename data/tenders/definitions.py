@@ -1,7 +1,7 @@
 import dagster as dg
 from tenders.resources import DataWarehouseResource, ProxyResource
 from sqlalchemy.sql import text
-from tenders.utils import launch_browser_and_get_auth
+from tenders.utils import launch_browser_and_get_auth, send_authenticated_request
 # from dagster_docker import docker_executor
 
 
@@ -71,12 +71,64 @@ def test_dwh_insert(dwh: DataWarehouseResource) -> dg.MaterializeResult:
 
 
 @dg.asset(compute_kind="docker", group_name="ingestion")
-def new_tenders(proxy: ProxyResource) -> dg.MaterializeResult:
+def new_tenders(
+    proxy: ProxyResource, dwh: DataWarehouseResource
+) -> dg.MaterializeResult:
     proxy_conf = proxy.get_proxy_conf()
     auth = launch_browser_and_get_auth(proxy_conf)
 
+    tenders_json = send_authenticated_request(auth)
+
+    tenders = tenders_json.get("tenderDataList", [])
+
+    columns = [
+        "id",
+        "tenderId",
+        "title",
+        "solicitationType",
+        "procurementEntity",
+        "endUserEntity",
+        "closingDate",
+        "postDate",
+        "tenderStatus",
+    ]
+
+    # Create rows as tuples
+    rows = [tuple(t.get(col) for col in columns) for t in tenders]
+
+    create_sql = """
+        CREATE TABLE IF NOT EXISTS new_tenders (
+            id INTEGER PRIMARY KEY,
+            tenderId TEXT,
+            title TEXT,
+            solicitationType TEXT,
+            procurementEntity TEXT,
+            endUserEntity TEXT,
+            closingDate TIMESTAMP,
+            postDate DATE,
+            tenderStatus TEXT
+        )
+    """
+
+    insert_sql = f"""
+        INSERT INTO new_tenders ({", ".join(columns)})
+        VALUES ({", ".join([":{}".format(c) for c in columns])})
+    """
+
+    Session = dwh.get_session()
+    with Session() as session:
+        session.execute(text(create_sql))
+        session.execute(text("TRUNCATE TABLE new_tenders"))
+
+        session.execute_many(
+            text(insert_sql), [dict(zip(columns, row)) for row in rows]
+        )
+
+        session.commit()
+
     return dg.MaterializeResult(
         metadata={
+            "records_ingested": dg.MetadataValue.int(len(rows)),
             "token": dg.MetadataValue.text(auth["jwt"]),
         }
     )
