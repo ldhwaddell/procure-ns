@@ -7,14 +7,16 @@ import json
 import time
 import httpx
 
+from urllib.parse import urlparse, urlunparse
+
 
 def get_ws_url():
-    with httpx.Client() as client:
-        response = client.get("http://chrome-headless-temp:9222/json/version")
-        response.raise_for_status()
-        return response.json()["webSocketDebuggerUrl"].replace(
-            "0.0.0.0", "chrome-headless-temp"
-        )
+    r = httpx.get(
+        "http://chrome-headless-temp:9222/json/version", headers={"Host": "localhost"}
+    )
+    r.raise_for_status()
+    u = urlparse(r.json()["webSocketDebuggerUrl"])
+    return urlunparse(u._replace(netloc=f"chrome-headless-temp:{u.port or 9222}"))
 
 
 def spawn_headless_chrome_container(timeout: int = 120, interval: int = 3):
@@ -53,7 +55,9 @@ def spawn_headless_chrome_container(timeout: int = 120, interval: int = 3):
     while elapsed_time < timeout:
         try:
             resp = httpx.get(
-                "http://chrome-headless-temp:9222/json/version", timeout=1.0
+                "http://chrome-headless-temp:9222/json/version",
+                timeout=1.0,
+                headers={"Host": "localhost"},
             )
             print(resp.json())
             if resp.status_code == 200 and "webSocketDebuggerUrl" in resp.json():
