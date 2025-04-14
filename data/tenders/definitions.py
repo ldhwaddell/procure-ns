@@ -82,29 +82,31 @@ def tender_metadata(
     with Session() as session:
         new_tenders = session.execute(select(NewTender)).scalars().all()
 
-    # proxy_conf = proxy.get_proxy_conf()
-    # auth = launch_browser_and_get_auth(proxy_conf)
+        # proxy_conf = proxy.get_proxy_conf()
+        # auth = launch_browser_and_get_auth(proxy_conf)
 
-    # For each new tender:
-    # pull the metadata
-    # insert new tender into master tenders with metadata
+        # For each new tender:
+        # pull the metadata
+        # insert new tender into master tenders with metadata
 
-    for tender in new_tenders:
-        master = MasterTender(
-            id=tender.id,
-            tenderId=tender.tenderId,
-            title=tender.title,
-            solicitationType=tender.solicitationType,
-            procurementEntity=tender.procurementEntity,
-            endUserEntity=tender.endUserEntity,
-            closingDate=tender.closingDate,
-            postDate=tender.postDate,
-            tenderStatus=tender.tenderStatus,
-        )
+        for tender in new_tenders:
+            master = MasterTender(
+                id=tender.id,
+                tenderId=tender.tenderId,
+                title=tender.title,
+                solicitationType=tender.solicitationType,
+                procurementEntity=tender.procurementEntity,
+                endUserEntity=tender.endUserEntity,
+                closingDate=tender.closingDate,
+                postDate=tender.postDate,
+                tenderStatus=tender.tenderStatus,
+            )
 
-        master.tenderMetadata = TenderMetadata(createdBy="Jerome")
+            master.tenderMetadata = TenderMetadata(createdBy="Jerome")
 
-        session.add(master)
+            session.add(master)
+
+        session.commit()
 
     return dg.MaterializeResult(
         metadata={
