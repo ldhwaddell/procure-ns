@@ -3,7 +3,7 @@ from tenders.resources import DataWarehouseResource, ProxyResource
 from sqlalchemy.sql import text
 from sqlalchemy import insert, select
 from tenders.utils import launch_browser_and_get_auth, send_authenticated_request
-from tenders.models import NewTender, MasterTender
+from tenders.models import NewTender, MasterTender, TenderMetadata
 from datetime import datetime
 
 
@@ -74,6 +74,35 @@ def new_tenders(
     )
 
 
+@dg.asset(compute_kind="docker", group_name="ingestion", deps=[new_tenders])
+def tender_metadata(
+    proxy: ProxyResource, dwh: DataWarehouseResource
+) -> dg.MaterializeResult:
+    Session = dwh.get_session()
+    with Session() as session:
+        new_tenders = session.execute(select(NewTender)).scalars().all()
+
+    # proxy_conf = proxy.get_proxy_conf()
+    # auth = launch_browser_and_get_auth(proxy_conf)
+
+    # For each new tender:
+    # pull the metadata
+    # insert new tender into master tenders with metadata
+
+    for tender in new_tenders:
+        master = MasterTender(**tender)
+
+        master.tenderMetadata = TenderMetadata(createdBy="Jerome")
+
+        session.add(master)
+
+    return dg.MaterializeResult(
+        metadata={
+            "new_tenders": dg.MetadataValue.int(len(new_tenders)),
+        }
+    )
+
+
 # dwh_job = dg.define_asset_job(
 #     name="dwh_job", selection=["test_dwh"], executor_def=docker_executor
 # )
@@ -82,7 +111,7 @@ def new_tenders(
 #
 
 defs = dg.Definitions(
-    assets=[new_tenders],
+    assets=[new_tenders, tender_metadata],
     # jobs=[dwh_job, dwh_job_2],
     resources={
         "dwh": DataWarehouseResource(
