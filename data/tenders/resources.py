@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import sessionmaker, Session
 
-from utils import ProxyConf
+from tenders.utils import ProxyConf
 
 
 class DataWarehouseResource(dg.ConfigurableResource):
