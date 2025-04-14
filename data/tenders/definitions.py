@@ -1,9 +1,9 @@
 import dagster as dg
 from tenders.resources import DataWarehouseResource, ProxyResource
 from sqlalchemy.sql import text
-from sqlalchemy import insert
+from sqlalchemy import insert, select
 from tenders.utils import launch_browser_and_get_auth, send_authenticated_request
-from tenders.models import NewTender
+from tenders.models import NewTender, MasterTender
 from datetime import datetime
 
 
@@ -17,7 +17,7 @@ def new_tenders(
 
     tenders = tenders_json.get("tenderDataList", [])
 
-    rows = [
+    incoming_rows = [
         {
             "id": t["id"],
             "tenderId": t["tenderId"],
@@ -55,12 +55,20 @@ def new_tenders(
     Session = dwh.get_session()
     with Session() as session:
         session.execute(text(ddl))
-        if rows:
-            session.execute(insert(NewTender), rows)
+
+        existing_ids = {
+            row[0] for row in session.execute(select(MasterTender.id)).all()
+        }
+
+        # Filter rows that are not in MasterTender
+        new_rows = [row for row in incoming_rows if row["id"] not in existing_ids]
+
+        if new_rows:
+            session.execute(insert(NewTender), new_rows)
         session.commit()
     return dg.MaterializeResult(
         metadata={
-            "records_ingested": dg.MetadataValue.int(len(rows)),
+            "records_ingested": dg.MetadataValue.int(len(new_rows)),
             "token": dg.MetadataValue.text(auth["jwt"]),
         }
     )
