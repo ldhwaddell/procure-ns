@@ -282,7 +282,7 @@ async def scrape_tender(
         metadata = TenderMetadata(
             **{
                 k: v
-                for k, v in tender_payloads[0].items()
+                for k, v in tender_data.items()
                 if k in TenderMetadata.__table__.columns.keys()
             }
         )
