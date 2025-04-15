@@ -7,8 +7,9 @@ from tenders.utils import (
     launch_browser_and_get_auth,
     send_authenticated_request,
     ProxyRotator,
+    AuthRotator,
 )
-from tenders.models import NewTender, MasterTender, TenderMetadata
+from tenders.models import NewTender, MasterTender
 from datetime import datetime
 import asyncio
 
@@ -89,8 +90,8 @@ async def tender_metadata(
     parallel_sessions_limit = 10
     proxy_conf = proxy.get_proxy_conf()
 
-    # Avoid weird playwright async issues
-    auth = await asyncio.to_thread(launch_browser_and_get_auth, proxy_conf)
+    async def get_auth():
+        return await asyncio.to_thread(launch_browser_and_get_auth, proxy_conf)
 
     # Step 1: Get all new tenders
     sync_session = dwh.get_session()
@@ -101,11 +102,12 @@ async def tender_metadata(
     async_session = dwh.get_async_session()
 
     semaphore = asyncio.Semaphore(parallel_sessions_limit)
-    rotator = ProxyRotator(10, proxy.get_proxy_conf)
+    proxy_rotator = ProxyRotator(10, proxy.get_proxy_conf)
+    auth_rotator = AuthRotator(100, get_auth)
     timeout = 30
 
     tasks = [
-        scrape_tender(t, rotator, auth, async_session, timeout, semaphore)
+        scrape_tender(t, proxy_rotator, auth_rotator, async_session, timeout, semaphore)
         for t in new_tenders
     ]
     await asyncio.gather(*tasks)

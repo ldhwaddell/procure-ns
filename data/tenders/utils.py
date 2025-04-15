@@ -3,7 +3,7 @@ import docker
 from docker.models.containers import Container
 from playwright.sync_api import sync_playwright
 from fake_useragent import UserAgent
-from typing import Dict, List, TypedDict, Callable
+from typing import Dict, List, TypedDict, Callable, Awaitable, Optional
 import json
 import time
 import httpx
@@ -193,8 +193,8 @@ def send_authenticated_request(auth_data: AuthData):
 
 
 class ProxyRotator:
-    def __init__(self, session_limit: int, get_config: Callable[[], ProxyConf]):
-        self._session_limit = session_limit
+    def __init__(self, limit: int, get_config: Callable[[], ProxyConf]):
+        self._limit = limit
         self._lock = asyncio.Lock()
         self._request_count = 0
         self._get_config = get_config
@@ -203,16 +203,38 @@ class ProxyRotator:
     async def get_proxy(self) -> str:
         async with self._lock:
             self._request_count += 1
-            if self._request_count >= self._session_limit:
+            if self._request_count >= self._limit:
                 self._proxy_conf = self._get_config()
                 self._request_count = 0
             return f"http://{self._proxy_conf['username']}:{self._proxy_conf['password']}@{self._proxy_conf['server']}"
 
 
+class AuthRotator:
+    def __init__(self, limit: int, get_auth: Callable[[], Awaitable[AuthData]]):
+        self._limit = limit
+        self._lock = asyncio.Lock()
+        self._request_count = 0
+        self._get_auth = get_auth
+        self._auth: Optional[AuthData] = None
+
+    async def get_auth(self) -> AuthData:
+        async with self._lock:
+            if self._auth is None:
+                async with self._init_lock:
+                    if self._auth is None:  # Double-checked locking
+                        self._auth = await self._get_auth()
+            elif self._request_count >= self._limit:
+                self._auth = await self._get_auth()
+                self._request_count = 0
+
+            self._request_count += 1
+            return self._auth
+
+
 async def scrape_tender(
     tender: NewTender,
-    rotator: ProxyRotator,
-    auth: AuthData,
+    proxy_rotator: ProxyRotator,
+    auth_rotator: AuthRotator,
     session: async_sessionmaker[AsyncSession],
     timeout: int,
     semaphore: asyncio.Semaphore,
@@ -226,7 +248,8 @@ async def scrape_tender(
     id = tender.tenderId
     url = base_url.format(id)
     async with semaphore:
-        proxy_url = await rotator.get_proxy()
+        proxy_url = await proxy_rotator.get_proxy()
+        auth = await auth_rotator.get_auth()
 
         headers = {
             "Accept": "application/json, text/plain, */*",
