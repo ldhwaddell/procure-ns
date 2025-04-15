@@ -232,7 +232,7 @@ async def scrape_tender(
             try:
                 response = await client.post(url, json={})
                 response.raise_for_status()
-                data = await response.json()
+                data = response.json()
             except httpx.HTTPStatusError as e:
                 print(f"Request failed: {e}, Type: {type(e).__name__}")
                 return

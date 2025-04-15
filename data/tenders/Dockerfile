@@ -10,7 +10,8 @@ RUN pip install \
 	docker \
 	playwright \
 	fake-useragent \
-	httpx
+	httpx \
+	asyncpg
 
 
 # Add repository code

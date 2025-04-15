@@ -88,7 +88,9 @@ async def tender_metadata(
 ) -> dg.MaterializeResult:
     parallel_sessions_limit = 10
     proxy_conf = proxy.get_proxy_conf()
-    auth = launch_browser_and_get_auth(proxy_conf)
+
+    # Avoid weird playwright async issues
+    auth = await asyncio.to_thread(launch_browser_and_get_auth, proxy_conf)
 
     # Step 1: Get all new tenders
     sync_session = dwh.get_session()
