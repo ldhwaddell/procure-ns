@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
 from urllib.parse import urlparse, urlunparse
 from tenders.models import NewTender, MasterTender, TenderMetadata
+from datetime import datetime
 
 
 class ProxyConf(TypedDict):
@@ -25,6 +26,21 @@ class AuthData(TypedDict):
     jwt: str
     cookies: List[Dict]
     user_agent: str
+
+
+def coerce_dates(data: dict, date_fields: List[str]) -> dict:
+    def parse(value):
+        if value and isinstance(value, str):
+            try:
+                return datetime.strptime(value, "%Y-%m-%d %H:%M:%S.%f")
+            except ValueError:
+                try:
+                    return datetime.strptime(value, "%Y-%m-%d")
+                except ValueError:
+                    return value
+        return value
+
+    return {k: parse(v) if k in date_fields else v for k, v in data.items()}
 
 
 def get_ws_url():
@@ -203,6 +219,7 @@ async def scrape_tender(
     base_url = (
         "https://procurement-portal.novascotia.ca/procurementui/tenders?tenderId={}"
     )
+    date_fields = ["createdDate", "modifiedDate"]
 
     log = get_dagster_logger()
     id = tender.tenderId
@@ -257,6 +274,10 @@ async def scrape_tender(
         if not tender_payloads:
             log.error(f"[WARNING] No tenderDataList found for tender {tender.tenderId}")
             return
+
+        tender_data = tender_payloads[0]
+
+        tender_data = coerce_dates(tender_data, date_fields)
 
         metadata = TenderMetadata(
             **{
