@@ -18,9 +18,10 @@ import asyncio
 def new_tenders(
     proxy: ProxyResource, dwh: DataWarehouseResource
 ) -> dg.MaterializeResult:
+    max_records = 5000
     proxy_conf = proxy.get_proxy_conf()
     auth = launch_browser_and_get_auth(proxy_conf)
-    tenders_json = send_authenticated_request(auth)
+    tenders_json = send_authenticated_request(auth, max_records)
 
     tenders = tenders_json.get("tenderDataList", [])
 
@@ -77,8 +78,7 @@ def new_tenders(
 
     return dg.MaterializeResult(
         metadata={
-            "records_ingested": dg.MetadataValue.int(len(new_rows)),
-            "token": dg.MetadataValue.text(auth["jwt"]),
+            "new_records_ingested": dg.MetadataValue.int(len(new_rows)),
         }
     )
 
@@ -102,7 +102,7 @@ async def tender_metadata(
     async_session = dwh.get_async_session()
 
     semaphore = asyncio.Semaphore(parallel_sessions_limit)
-    proxy_rotator = ProxyRotator(10, proxy.get_proxy_conf)
+    proxy_rotator = ProxyRotator(50, proxy.get_proxy_conf)
     auth_rotator = AuthRotator(100, get_auth)
     timeout = 30
 
@@ -120,16 +120,8 @@ async def tender_metadata(
     )
 
 
-# dwh_job = dg.define_asset_job(
-#     name="dwh_job", selection=["test_dwh"], executor_def=docker_executor
-# )
-#
-# dwh_job_2 = dg.define_asset_job(name="dwh_job_2", selection=["test_dwh"])
-#
-
 defs = dg.Definitions(
     assets=[new_tenders, tender_metadata],
-    # jobs=[dwh_job, dwh_job_2],
     resources={
         "dwh": DataWarehouseResource(
             username=dg.EnvVar("DWH_POSTGRES_USER"),
@@ -142,23 +134,3 @@ defs = dg.Definitions(
         ),
     },
 )
-
-
-# master = MasterTender(
-#     id=tender.id,
-#     tenderId=tender.tenderId,
-#     title=tender.title,
-#     solicitationType=tender.solicitationType,
-#     procurementEntity=tender.procurementEntity,
-#     endUserEntity=tender.endUserEntity,
-#     closingDate=tender.closingDate,
-#     postDate=tender.postDate,
-#     tenderStatus=tender.tenderStatus,
-#             )
-#
-#             master.tenderMetadata = TenderMetadata(createdBy="Jerome")
-#
-#             session.add(master)
-#
-#         session.commit()
-#

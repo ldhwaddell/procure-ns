@@ -62,6 +62,7 @@ def spawn_headless_chrome_container(timeout: int = 120, interval: int = 3) -> Co
     """
     client = docker.from_env()
     container_name = "chrome-headless-temp"
+    log = get_dagster_logger()
 
     try:
         existing = client.containers.get(container_name)
@@ -95,6 +96,7 @@ def spawn_headless_chrome_container(timeout: int = 120, interval: int = 3) -> Co
             )
             print(resp.json())
             if resp.status_code == 200 and "webSocketDebuggerUrl" in resp.json():
+                log.info("Chrome container reached. Returning")
                 return container
         except Exception:
             pass
@@ -164,7 +166,7 @@ def launch_browser_and_get_auth(proxy_conf: ProxyConf) -> AuthData:
         chrome_container.remove()
 
 
-def send_authenticated_request(auth_data: AuthData):
+def send_authenticated_request(auth_data: AuthData, records: int):
     headers = {
         "Accept": "application/json, text/plain, */*",
         "Authorization": f"Bearer {auth_data['jwt']}",
@@ -178,7 +180,6 @@ def send_authenticated_request(auth_data: AuthData):
         "User-Agent": auth_data["user_agent"],
     }
 
-    records = 20
     url = f"https://procurement-portal.novascotia.ca/procurementui/tenders?page=1&numberOfRecords={records}&sortType=POSTED_DATE_DESC&keyword="
     body = {"filters": [{"key": "tenderStatus", "values": ["AWARDED"]}]}
 
@@ -236,7 +237,7 @@ async def scrape_tender(
     tender: NewTender,
     proxy_rotator: ProxyRotator,
     auth_rotator: AuthRotator,
-    session: async_sessionmaker[AsyncSession],
+    session_factory: async_sessionmaker[AsyncSession],
     timeout: int,
     semaphore: asyncio.Semaphore,
 ):
@@ -277,10 +278,15 @@ async def scrape_tender(
                 response = await client.post(url, json={})
                 response.raise_for_status()
                 data = response.json()
-                log.info(f"RESPONSE: {data}")
+                log.info(f"Received code: {response.status_code} for url: {url}")
                 await asyncio.sleep(random.uniform(0.5, 2))
 
             except httpx.HTTPStatusError as e:
+                log.error(
+                    f"HTTPStatusError: Request failed: {e}, Type: {type(e).__name__}"
+                )
+                return
+            except Exception as e:
                 log.error(f"Request failed: {e}, Type: {type(e).__name__}")
                 return
 
@@ -298,7 +304,7 @@ async def scrape_tender(
 
         tender_payloads = data.get("tenderDataList")
         if not tender_payloads:
-            log.error(f"[WARNING] No tenderDataList found for tender {tender.tenderId}")
+            log.warning(f"No tenderDataList found for tender {tender.tenderId}")
             return
 
         tender_data = tender_payloads[0]
@@ -314,6 +320,6 @@ async def scrape_tender(
         )
         master.tenderMetadata = metadata
 
-        async with session.begin() as s:
-            s.add(master)
-            await s.commit()
+        async with session_factory() as session:
+            session.add(master)
+            await session.commit()
