@@ -216,6 +216,7 @@ class AuthRotator:
         self._request_count = 0
         self._get_auth = get_auth
         self._auth: Optional[AuthData] = None
+        self._init_lock = asyncio.Lock()
 
     async def get_auth(self) -> AuthData:
         async with self._lock:
