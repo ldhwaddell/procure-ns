@@ -8,6 +8,7 @@ import json
 import time
 import httpx
 from dagster import get_dagster_logger
+import random
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
@@ -253,6 +254,7 @@ async def scrape_tender(
                 response.raise_for_status()
                 data = response.json()
                 log.info(f"RESPONSE: {data}")
+                await asyncio.sleep(random.uniform(0.5, 2))
 
             except httpx.HTTPStatusError as e:
                 log.error(f"Request failed: {e}, Type: {type(e).__name__}")
