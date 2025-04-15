@@ -12,7 +12,7 @@ import random
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse, quote
 from tenders.models import NewTender, MasterTender, TenderMetadata
 from datetime import datetime
 
@@ -246,7 +246,7 @@ async def scrape_tender(
     date_fields = ["createdDate", "modifiedDate"]
 
     log = get_dagster_logger()
-    id = tender.tenderId
+    id = quote(tender.tenderId, safe="")
     url = base_url.format(id)
     async with semaphore:
         proxy_url = await proxy_rotator.get_proxy()
