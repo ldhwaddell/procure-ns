@@ -253,10 +253,15 @@ async def scrape_tender(
             tenderStatus=tender.tenderStatus,
         )
 
+        tender_payloads = data.get("tenderDataList")
+        if not tender_payloads:
+            log.error(f"[WARNING] No tenderDataList found for tender {tender.tenderId}")
+            return
+
         metadata = TenderMetadata(
             **{
                 k: v
-                for k, v in data.items()
+                for k, v in tender_payloads[0].items()
                 if k in TenderMetadata.__table__.columns.keys()
             }
         )
