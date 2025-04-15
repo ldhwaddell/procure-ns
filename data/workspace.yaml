@@ -4,3 +4,8 @@ load_from:
       host: ingestion
       port: 4000
       location_name: "ingestion"
+
+  - grpc_server:
+      host: transformation
+      port: 4010
+      location_name: "transformation"

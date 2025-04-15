@@ -57,6 +57,25 @@ services:
       - /opt/dagster/dagster_home:/tmp/dagster-data
       - /var/run/docker.sock:/var/run/docker.sock
 
+  transformation:
+    image: transformation
+    build:
+      context: ./transformation
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      DAGSTER_POSTGRES_USER: ${DAGSTER_POSTGRES_USER}
+      DAGSTER_POSTGRES_PASSWORD: ${DAGSTER_POSTGRES_PASSWORD}
+      DAGSTER_POSTGRES_DB: ${DAGSTER_POSTGRES_DB}
+      DAGSTER_CURRENT_IMAGE: "transformation"
+      DWH_POSTGRES_USER: ${DWH_POSTGRES_USER}
+      DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD}
+      DWH_POSTGRES_DB: ${DWH_POSTGRES_DB}
+    networks:
+      - dagster_network
+    volumes:
+      - /opt/dagster/dagster_home:/tmp/dagster-data
+
 
   # This service runs dagster-webserver, which loads your user code from the user code container.
   # Since our instance uses the QueuedRunCoordinator, any runs submitted from the webserver will be put on
@@ -90,6 +109,7 @@ services:
     depends_on:
       - dagster_postgresql
       - ingestion
+      - transformation
 
   # This service runs the dagster-daemon process, which is responsible for taking runs
   # off of the queue and launching them, as well as creating runs from schedules or sensors.
@@ -119,6 +139,7 @@ services:
     depends_on:
       - dagster_postgresql
       - ingestion
+      - transformation
 
 networks:
   dagster_network:
