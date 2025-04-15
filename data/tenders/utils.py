@@ -7,6 +7,7 @@ from typing import Dict, List, TypedDict, Callable
 import json
 import time
 import httpx
+from dagster import get_dagster_logger
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
@@ -203,6 +204,7 @@ async def scrape_tender(
         "https://procurement-portal.novascotia.ca/procurementui/tenders?tenderId={}"
     )
 
+    log = get_dagster_logger()
     id = tender.tenderId
     url = base_url.format(id)
     async with semaphore:
@@ -233,8 +235,10 @@ async def scrape_tender(
                 response = await client.post(url, json={})
                 response.raise_for_status()
                 data = response.json()
+                log.info(f"RESPONSE: {data}")
+
             except httpx.HTTPStatusError as e:
-                print(f"Request failed: {e}, Type: {type(e).__name__}")
+                log.error(f"Request failed: {e}, Type: {type(e).__name__}")
                 return
 
         master = MasterTender(
@@ -250,7 +254,11 @@ async def scrape_tender(
         )
 
         metadata = TenderMetadata(
-            **{k: v for k, v in data.items() if k in TenderMetadata.__table__.columns}
+            **{
+                k: v
+                for k, v in data.items()
+                if k in TenderMetadata.__table__.columns.keys()
+            }
         )
         master.tenderMetadata = metadata
 
