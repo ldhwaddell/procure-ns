@@ -1,13 +1,12 @@
-import socket
 import random
+import socket
 
 import dagster as dg
-
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import sessionmaker, Session
 
-from tenders.utils import ProxyConf
+from ingestion.utils import ProxyConf
 
 
 class DataWarehouseResource(dg.ConfigurableResource):

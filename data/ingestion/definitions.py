@@ -1,17 +1,19 @@
-import dagster as dg
-from tenders.resources import DataWarehouseResource, ProxyResource
-from sqlalchemy.sql import text
-from sqlalchemy import insert, select
-from tenders.utils import (
-    scrape_tender,
-    launch_browser_and_get_auth,
-    send_authenticated_request,
-    ProxyRotator,
-    AuthRotator,
-)
-from tenders.models import NewTender, MasterTender
-from datetime import datetime
 import asyncio
+from datetime import datetime
+
+import dagster as dg
+from sqlalchemy import insert, select
+from sqlalchemy.sql import text
+
+from ingestion.models import MasterTender, NewTender
+from ingestion.resources import DataWarehouseResource, ProxyResource
+from ingestion.utils import (
+    AuthRotator,
+    ProxyRotator,
+    launch_browser_and_get_auth,
+    scrape_tender,
+    send_authenticated_request,
+)
 
 
 @dg.asset(compute_kind="docker", group_name="ingestion")

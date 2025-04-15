@@ -1,20 +1,20 @@
 import asyncio
-import docker
-from docker.models.containers import Container
-from playwright.sync_api import sync_playwright
-from fake_useragent import UserAgent
-from typing import Dict, List, TypedDict, Callable, Awaitable, Optional
 import json
+import random
 import time
+from datetime import datetime
+from typing import Awaitable, Callable, Dict, List, Optional, TypedDict
+from urllib.parse import quote, urlparse, urlunparse
+
+import docker
 import httpx
 from dagster import get_dagster_logger
-import random
+from docker.models.containers import Container
+from fake_useragent import UserAgent
+from playwright.sync_api import sync_playwright
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
-
-from urllib.parse import urlparse, urlunparse, quote
-from tenders.models import NewTender, MasterTender, TenderMetadata
-from datetime import datetime
+from ingestion.models import MasterTender, NewTender, TenderMetadata
 
 
 class ProxyConf(TypedDict):

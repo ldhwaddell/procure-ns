@@ -35,18 +35,17 @@ services:
   # Multiple containers like this can be deployed separately - each just needs to run on
   # its own port, and have its own entry in the workspace.yaml file that's loaded by the
       # webserver.
-  tenders:
-    # Ensure we arent using stale tender file
-    image: tenders
+  ingestion:
+    image: ingestion
     build:
-      context: ./tenders
+      context: ./ingestion
       dockerfile: Dockerfile
     restart: always
     environment:
       DAGSTER_POSTGRES_USER: ${DAGSTER_POSTGRES_USER}
       DAGSTER_POSTGRES_PASSWORD: ${DAGSTER_POSTGRES_PASSWORD}
       DAGSTER_POSTGRES_DB: ${DAGSTER_POSTGRES_DB}
-      DAGSTER_CURRENT_IMAGE: "tenders"
+      DAGSTER_CURRENT_IMAGE: "ingestion"
       DWH_POSTGRES_USER: ${DWH_POSTGRES_USER}
       DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD}
       DWH_POSTGRES_DB: ${DWH_POSTGRES_DB}
@@ -90,7 +89,7 @@ services:
       - dagster_network
     depends_on:
       - dagster_postgresql
-      - tenders
+      - ingestion
 
   # This service runs the dagster-daemon process, which is responsible for taking runs
   # off of the queue and launching them, as well as creating runs from schedules or sensors.
@@ -119,7 +118,7 @@ services:
       - dagster_network
     depends_on:
       - dagster_postgresql
-      - tenders
+      - ingestion
 
 networks:
   dagster_network:
