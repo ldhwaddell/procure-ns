@@ -17,6 +17,13 @@ WORKDIR /opt/dagster/app
 RUN mkdir data
 COPY . /opt/dagster/app/transformation
 
+ENV DBT_PROJECT_DIR=/opt/dagster/app/transformation/dbt_transform
+
+WORKDIR ${DBT_PROJECT_DIR}
+RUN dbt deps && dbt parse
+
+
+RUN find target -type f -name 'manifest.json' -exec cp {} target/manifest.json \;
 # Run dagster gRPC server on port 4000
 
 EXPOSE 4000
