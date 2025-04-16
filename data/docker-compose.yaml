@@ -71,6 +71,7 @@ services:
       DWH_POSTGRES_USER: ${DWH_POSTGRES_USER}
       DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD}
       DWH_POSTGRES_DB: ${DWH_POSTGRES_DB}
+      DAGSTER_DBT_PARSE_PROJECT_ON_LOAD: 1
     networks:
       - dagster_network
     volumes:
