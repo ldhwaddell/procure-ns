@@ -1,21 +1,34 @@
-FROM python:3.10-slim
+# --- Stage 1: Build -----------------------------------------------------
 
-# Checkout and install dagster libraries needed to run the gRPC server
-# exposing your repository to dagster-webserver and dagster-daemon, and to load the DagsterInstance
+FROM python:3.10-slim AS builder
+
+WORKDIR /build
 
 RUN pip install \
 	dagster \
-	dagster-postgres \
-	dagster-docker \
+	dagster-dbt \
+	dbt-postgres
+
+COPY . .
+
+RUN dagster-dbt project prepare-and-package --file transformation/definitions.py
+
+# --- Stage 2: Runtime -----------------------------------------------------
+
+FROM python:3.10-slim
+
+# Add repository code
+
+RUN pip install \
+	dagster \
 	dagster-dbt \
 	dbt-postgres
 
 
-# Add repository code
-
 WORKDIR /opt/dagster/app
-RUN mkdir data
-COPY . /opt/dagster/app/transformation
+# RUN mkdir data
+
+COPY --from=builder /build/transformation /opt/dagster/app/transformation
 
 # Run dagster gRPC server on port 4000
 EXPOSE 4000
