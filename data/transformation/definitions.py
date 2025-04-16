@@ -1,4 +1,19 @@
+from pathlib import Path
+
 import dagster as dg
+
+from dagster_dbt import DbtCliResource, DbtProject, dbt_assets, get_asset_key_for_model
+
+transformation_project = DbtProject(
+    project_dir=Path(__file__).joinpath("..", "dbt").resolve(),
+    packaged_project_dir=Path(__file__).joinpath("..", "dbt-project").resolve(),
+)
+transformation_project.prepare_if_dev()
+
+
+@dbt_assets(manifest=transformation_project.manifest_path)
+def transformation_dbt_assets(context: dg.AssetExecutionContext, dbt: DbtCliResource):
+    yield from dbt.cli(["build"], context=context).stream()
 
 
 @dg.asset(
@@ -9,8 +24,11 @@ def example_asset(context: dg.AssetExecutionContext):
     context.log.info(context.partition_key)
 
 
-partitioned_asset_job = dg.define_asset_job(
-    "partitioned_job", selection=[example_asset]
+defs = dg.Definitions(
+    assets=[example_asset, transformation_dbt_assets],
+    resources=(
+        {
+            "dbt": DbtCliResource(project_dir=transformation_project),
+        },
+    ),
 )
-
-defs = dg.Definitions(assets=[example_asset], jobs=[partitioned_asset_job])
