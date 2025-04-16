@@ -7,7 +7,8 @@ RUN pip install \
 	dagster \
 	dagster-postgres \
 	dagster-docker \
-	dagster-dbt
+	dagster-dbt \
+	dbt-postgres
 
 
 # Add repository code
