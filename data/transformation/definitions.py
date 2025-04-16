@@ -3,11 +3,11 @@ from pathlib import Path
 
 import dagster as dg
 
-from dagster_dbt import DbtCliResource, DbtProject, dbt_assets, get_asset_key_for_model
+from dagster_dbt import DbtCliResource, DbtProject, dbt_assets
 
 transformation_project = DbtProject(
-    project_dir=Path(__file__).joinpath("..", "dbt").resolve(),
-    packaged_project_dir=Path(__file__).joinpath("..", "dbt-project").resolve(),
+    project_dir=Path(__file__).joinpath("..", "dbt_transform").resolve(),
+    packaged_project_dir=Path(__file__).joinpath("..", "dbt_project").resolve(),
 )
 transformation_project.prepare_if_dev()
 

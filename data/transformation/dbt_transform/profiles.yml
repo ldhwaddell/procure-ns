@@ -1,4 +1,4 @@
-dbt:
+dbt_transform:
   target: dev
   outputs:
     dev:
