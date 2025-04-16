@@ -1,0 +1,14 @@
+dbt:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: dwh  # Docker Compose service name for your DWH Postgres container
+      user: "{{ env_var('DWH_POSTGRES_USER') }}"
+      password: "{{ env_var('DWH_POSTGRES_PASSWORD') }}"
+      port: 5432
+      dbname: "{{ env_var('DWH_POSTGRES_DB') }}"
+      schema: analytics
+      threads: 4
+      connect_timeout: 10
+      retries: 1
