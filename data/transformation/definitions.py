@@ -4,14 +4,15 @@ from pathlib import Path
 import dagster as dg
 
 from dagster_dbt import DbtCliResource, DbtProject, dbt_assets
+from transformation.project import transformation_project
 
 log = dg.get_dagster_logger()
 
-transformation_project = DbtProject(
-    project_dir=Path(__file__).joinpath("..", "dbt_transform").resolve(),
-    packaged_project_dir=Path(__file__).joinpath("..", "dbt_project").resolve(),
-)
-
+# transformation_project = DbtProject(
+#     project_dir=Path(__file__).joinpath("..", "dbt_transform").resolve(),
+#     packaged_project_dir=Path(__file__).joinpath("..", "dbt_project").resolve(),
+# )
+#
 # log.info(f"project_dur: {Path(__file__).joinpath('..', 'dbt_transform').resolve()}")
 # log.info(f"packaged_dir: {Path(__file__).joinpath('..', 'dbt_transform').resolve()}")
 #
