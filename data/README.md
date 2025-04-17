@@ -1,54 +1,62 @@
-\[01;31m.\[0m
-├── \[01;31malembic\[0m
-│   ├── \[01;31m\_\_pycache\_\_\[0m
-│   │   └── \[00menv.cpython-313.pyc\[0m
-│   ├── \[01;31mversions\[0m
-│   │   ├── \[01;31m\_\_pycache\_\_\[0m
-│   │   │   └── \[00m02a3b10e21ea_initial.cpython-313.pyc\[0m
-│   │   └── \[00m02a3b10e21ea_initial.py\[0m
-│   ├── \[00menv.py\[0m
-│   └── \[00mscript.py.mako\[0m
-├── \[01;31mingestion\[0m
-│   ├── \[01;31m\_\_pycache\_\_\[0m
-│   │   ├── \[00m\_\_init\_\_.cpython-313.pyc\[0m
-│   │   └── \[00mmodels.cpython-313.pyc\[0m
-│   ├── \[00mDockerfile\[0m
-│   ├── \[00m\_\_init\_\_.py\[0m
-│   ├── \[00massets.py\[0m
-│   ├── \[00mdefinitions.py\[0m
-│   ├── \[00mmodels.py\[0m
-│   ├── \[00mresources.py\[0m
-│   └── \[00mutils.py\[0m
-├── \[01;31mtransformation\[0m
-│   ├── \[01;31mdbt_transform\[0m
-│   │   ├── \[01;31manalyses\[0m
-│   │   │   └── \[00m.gitkeep\[0m
-│   │   ├── \[01;31mlogs\[0m
-│   │   │   └── \[00mdbt.log\[0m
-│   │   ├── \[01;31mmacros\[0m
-│   │   │   └── \[00m.gitkeep\[0m
-│   │   ├── \[01;31mmodels\[0m
-│   │   │   └── \[01;31mexample\[0m
-│   │   │       ├── \[00mmy_first_dbt_model.sql\[0m
-│   │   │       ├── \[00mmy_second_dbt_model.sql\[0m
-│   │   │       └── \[00mschema.yml\[0m
-│   │   ├── \[00m.gitignore\[0m
-│   │   ├── \[00mREADME.md\[0m
-│   │   ├── \[00mdbt_project.yml\[0m
-│   │   └── \[00mprofiles.yml\[0m
-│   ├── \[00mDockerfile\[0m
-│   ├── \[00mdefinitions.py\[0m
-│   └── \[00mproject.py\[0m
-├── \[00m.env\[0m
-├── \[00m.gitignore\[0m
-├── \[00m.python-version\[0m
-├── \[00mDockerfile\[0m
-├── \[00mREADME.md\[0m
-├── \[00malembic.ini\[0m
-├── \[00mdagster.yaml\[0m
-├── \[00mdocker-compose.yaml\[0m
-├── \[00mpyproject.toml\[0m
-├── \[00muv.lock\[0m
-└── \[00mworkspace.yaml\[0m
+# data
 
-14 directories, 38 files
+This folder contain all required logic for the containerized deployment of the ingestion pipeline.
+
+### Current Structure
+
+```bash
+.
+├── .env <- Connection for DB, DWH, Proxies
+├── .gitignore
+├── .python-version
+├── Dockerfile
+├── README.md
+├── alembic <- Enable easy sync of expected DB models in ingestion/models.py and DWH
+│   ├── env.py
+│   ├── script.py.mako
+├── alembic.ini
+├── dagster.yaml <- Configure the global dagster settings (env vars, storage, logging, scheduling, ...)
+├── docker-compose.yaml <- Main container definitions
+├── ingestion <- ingestion code location, builds into ingestion container
+│   ├── Dockerfile
+│   ├── __init__.py
+│   ├── assets.py
+│   ├── definitions.py
+│   ├── models.py
+│   ├── resources.py
+│   └── utils.py
+├── pyproject.toml <- Track UV dependencies for local dev
+├── transformation <- transformation code location, builds into transformation container
+│   ├── Dockerfile
+│   ├── dbt_transform <- Starter DBT project + models
+│   │   ├── .gitignore
+│   │   ├── README.md
+│   │   ├── analyses
+│   │   │   └── .gitkeep
+│   │   ├── dbt_project.yml
+│   │   ├── logs
+│   │   │   └── dbt.log
+│   │   ├── macros
+│   │   │   └── .gitkeep
+│   │   ├── models
+│   │   │   └── example
+│   │   │       ├── my_first_dbt_model.sql
+│   │   │       ├── my_second_dbt_model.sql
+│   │   │       └── schema.yml
+│   │   └── profiles.yml
+│   ├── definitions.py
+│   └── project.py
+├── uv.lock
+└── workspace.yaml <- Defines code locations for the ingestion and transformation containers
+```
+
+### TODO
+
+1. Fix DBT paths in conatinerized deployment
+   - The current implementation does not correctly locate the target directory build by DBT. This leads to dag runs needing to re-build the `manifest.json` file as they are ran. This is messy, and will create a bottleneck as DBT project complexity grows.
+1. Use the `dagster-docker` package
+   - Current implementation manually spawns docker containers to pull auth credentials. This should be built into a single container, and then ran from the dagster asset. Not only is this more cohesive, it will solve the weird async + websocket addressing workarounds that are currently required.
+1. Run `tender_metadata` asset based on a sensor
+   - It should not run if the `new_tenders` asset returns 0 (meaning no new awarded tenders)
+1. Build out DBT models
+1. Investigate switching to `duckdb` as data warehouse
