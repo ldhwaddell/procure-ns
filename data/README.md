@@ -1,6 +1,6 @@
 # data
 
-This folder contain all required logic for the containerized deployment of the ingestion pipeline.
+This folder contain all required logic for the containerized deployment of the ingestion pipeline. Current deployment is on a Hetzner VPS
 
 ### Current Structure
 
