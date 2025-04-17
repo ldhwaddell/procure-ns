@@ -62,6 +62,10 @@ services:
     build:
       context: ./transformation
       dockerfile: Dockerfile
+      args:
+        DWH_POSTGRES_USER: ${DWH_POSTGRES_USER}
+        DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD}
+        DWH_POSTGRES_DB: ${DWH_POSTGRES_DB}
     restart: always
     environment:
       DAGSTER_POSTGRES_USER: ${DAGSTER_POSTGRES_USER}
