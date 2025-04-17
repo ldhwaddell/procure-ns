@@ -30,13 +30,14 @@ FROM python:3.10-slim
 RUN pip install \
 	dagster \
 	dagster-dbt \
+	dagster-postgres \
 	dbt-postgres
 
 
 WORKDIR /opt/dagster/app
 # RUN mkdir data
 
-COPY --from=builder /build/transformation /opt/dagster/app/transformation
+COPY --from=builder /build /opt/dagster/app/transformation
 
 # Run dagster gRPC server on port 4000
 EXPOSE 4000

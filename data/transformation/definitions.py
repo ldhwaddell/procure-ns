@@ -36,7 +36,7 @@ log = dg.get_dagster_logger()
 #
 
 
-@dbt_assets(manifest=Path("target", "manifest.json"))
+@dbt_assets(manifest=Path("transformation", "dbt_project", "target", "manifest.json"))
 def transformation_dbt_assets(context: dg.AssetExecutionContext, dbt: DbtCliResource):
     yield from dbt.cli(["build"], context=context).stream()
 
