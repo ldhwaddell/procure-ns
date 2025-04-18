@@ -4,11 +4,11 @@ from pathlib import Path
 import dagster as dg
 
 from dagster_dbt import DbtCliResource, DbtProject, dbt_assets
-from transformation.project import transformation_project
+from transformation.dagster_transform.project import transformation_project
 
 
 # would be BUILT dbt project
-@dbt_assets(manifest=Path("transformation", "packaged_dbt_project", "target", "manifest.json"))
+@dbt_assets(manifest=Path("packaged_dbt_project", "target", "manifest.json"))
 def transformation_dbt_assets(context: dg.AssetExecutionContext, dbt: DbtCliResource):
     yield from dbt.cli(["build"], context=context).stream()
 
