@@ -51,6 +51,7 @@ COPY --from=builder /build/packaged_dbt_project/ packaged_dbt_project/
 # Run dagster gRPC server on port 4000
 EXPOSE 4000
 
+# CMD ["bash"]
 # CMD allows this to be overridden from run launchers or executors that want
 # to run other commands against your repository
 # maybe change to dagster_transform.definitions
