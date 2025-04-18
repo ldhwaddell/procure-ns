@@ -1,9 +1,9 @@
 dbt_transform:
-  target: dev
+  target: prod
   outputs:
-    dev:
+    prod:
       type: postgres
-      host: dwh  # Docker Compose service name for your DWH Postgres container
+      host: dwh  # Docker Compose service name for DWH Postgres container
       user: "{{ env_var('DWH_POSTGRES_USER') }}"
       password: "{{ env_var('DWH_POSTGRES_PASSWORD') }}"
       port: 5432

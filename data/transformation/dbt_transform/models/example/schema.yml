@@ -5,8 +5,9 @@ models:
   - name: my_first_dbt_model
     description: "A starter dbt model"
     columns:
-      - name: id
-        description: "The primary key for this table"
+      - name: procurementEntity
+        quote: true
+        description: "Ensure the procurementEntiy is unique and not null"
         data_tests:
           - unique
           - not_null
