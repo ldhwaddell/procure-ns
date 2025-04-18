@@ -15,7 +15,7 @@ services:
     networks:
       - dagster_network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U $${DWH_POSTGRES_USER} -d $${DWH_POSTGRES_DB}']
+      test: ['CMD-SHELL', "sh -c 'pg_isready -U ${DWH_POSTGRES_USER} -d ${DWH_POSTGRES_DB}'"]
       interval: 10s
       timeout: 8s
       retries: 5
@@ -36,7 +36,7 @@ services:
     networks:
       - dagster_network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U $${DAGSTER_POSTGRES_USER} -d $${DAGSTER_POSTGRES_DB}']
+      test: ['CMD-SHELL', "sh -c 'pg_isready -U ${DAGSTER_POSTGRES_USER} -d ${DAGSTER_POSTGRES_DB}'"]
       interval: 10s
       timeout: 8s
       retries: 5
@@ -128,10 +128,6 @@ services:
       - /tmp/io_manager_storage:/tmp/io_manager_storage
     networks:
       - dagster_network
-    depends_on:
-      - dagster_postgresql
-      - ingestion
-      - transformation
     depends_on:
       dagster_postgresql:
         condition: service_healthy
