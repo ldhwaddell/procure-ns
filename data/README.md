@@ -52,7 +52,7 @@ This folder contain all required logic for the containerized deployment of the i
 
 ### TODO
 
-1. Fix DBT paths in conatinerized deployment
+1. Fix DBT paths in conatinerized deployment `[DONE]`
    - The current implementation does not correctly locate the target directory build by DBT. This leads to dag runs needing to re-build the `manifest.json` file as they are ran. This is messy, and will create a bottleneck as DBT project complexity grows.
 1. Use the `dagster-docker` package
    - Current implementation manually spawns docker containers to pull auth credentials. This should be built into a single container, and then ran from the dagster asset. Not only is this more cohesive, it will solve the weird async + websocket addressing workarounds that are currently required.
