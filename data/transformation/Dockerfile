@@ -17,6 +17,9 @@ RUN pip install \
 	dagster-dbt \
 	dbt-postgres
 
+# package the dagster prokect into a dir
+# then here we can copy in the whole dbt proj + just project.py
+# now running prepare and packagine will build built_dbt_project
 COPY . .
 
 RUN dagster-dbt project prepare-and-package --file project.py
@@ -37,6 +40,13 @@ RUN pip install \
 WORKDIR /opt/dagster/app
 # RUN mkdir data
 
+
+# now we need to copy in the BUILT dbt project and the whole dagster project. righ???
+
+# i dont know if my need config files from the raw dbt project?
+
+# might not need parent transformation folder
+# base dir it copies into could just have 2 folders for dagster + dbt?
 COPY --from=builder /build /opt/dagster/app/transformation
 
 # Run dagster gRPC server on port 4000
