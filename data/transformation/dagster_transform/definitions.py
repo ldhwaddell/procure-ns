@@ -4,7 +4,7 @@ from pathlib import Path
 import dagster as dg
 
 from dagster_dbt import DbtCliResource, DbtProject, dbt_assets
-from transformation.dagster_transform.project import transformation_project
+from dagster_transform.project import transformation_project
 
 
 # would be BUILT dbt project

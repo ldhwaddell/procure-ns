@@ -44,10 +44,12 @@ RUN dagster-dbt project prepare-and-package --file project.py
 # # might not need parent transformation folder
 # # base dir it copies into could just have 2 folders for dagster + dbt?
 # COPY --from=builder /build/packaged_dbt_project/ /opt/dagster/app/
+# COPY ./dagster_transform/ ./dagster_transform/
 #
 # # Run dagster gRPC server on port 4000
 # EXPOSE 4000
 #
 # # CMD allows this to be overridden from run launchers or executors that want
 # # to run other commands against your repository
+# maybe change to dagster_transform.definitions
 # CMD ["dagster", "api", "grpc", "-h", "0.0.0.0", "-p", "4010", "-m", "transformation.definitions"]
