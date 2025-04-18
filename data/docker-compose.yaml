@@ -20,8 +20,6 @@ services:
       timeout: 8s
       retries: 5
 
-
-
   # ---------- Dagster Services ---------- 
 
   # This service runs the postgres DB used by dagster for run storage, schedule storage,
@@ -65,9 +63,14 @@ services:
       PROXY_PASSWORD: ${PROXY_PASSWORD}
     networks:
       - dagster_network
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/4000'"]
+      interval: 5s
+      retries: 10
+      start_period: 10s
     volumes:
       # - /opt/dagster/dagster_home:/tmp/dagster-data
-      - /var/run/docker.sock:/var/run/docker.sock # can maybe be removed
+      - /var/run/docker.sock:/var/run/docker.sock # can maybe be removed once dagster-docker installed
     depends_on:
       dwh:
         condition: service_healthy
@@ -92,12 +95,14 @@ services:
       DWH_POSTGRES_DB: ${DWH_POSTGRES_DB}
     networks:
       - dagster_network
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/4010'"]
+      interval: 5s
+      retries: 10
+      start_period: 10s
     depends_on:
       dwh:
         condition: service_healthy
-    # volumes:
-      # - /opt/dagster/dagster_home:/tmp/dagster-data
-
 
   # This service runs dagster-webserver, which loads your user code from the user code container.
   # Since our instance uses the QueuedRunCoordinator, any runs submitted from the webserver will be put on
@@ -134,9 +139,9 @@ services:
       dwh:
         condition: service_healthy
       ingestion:
-        condition: service_started
+        condition: service_healthy
       transformation:
-        condition: service_started
+        condition: service_healthy
 
   # This service runs the dagster-daemon process, which is responsible for taking runs
   # off of the queue and launching them, as well as creating runs from schedules or sensors.
@@ -169,11 +174,9 @@ services:
       dwh:
         condition: service_healthy
       ingestion:
-        condition: service_started
+        condition: service_healthy
       transformation:
-        condition: service_started
-
-
+        condition: service_healthy
 
 networks:
   dagster_network:
