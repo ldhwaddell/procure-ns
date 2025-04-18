@@ -8,7 +8,7 @@ from transformation.project import transformation_project
 
 
 # would be BUILT dbt project
-@dbt_assets(manifest=Path("transformation", "dbt_project", "target", "manifest.json"))
+@dbt_assets(manifest=Path("transformation", "packaged_dbt_project", "target", "manifest.json"))
 def transformation_dbt_assets(context: dg.AssetExecutionContext, dbt: DbtCliResource):
     yield from dbt.cli(["build"], context=context).stream()
 
