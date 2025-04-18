@@ -20,7 +20,7 @@ from ingestion.utils import (
 def new_tenders(
     proxy: ProxyResource, dwh: DataWarehouseResource
 ) -> dg.MaterializeResult:
-    max_records = 5000
+    max_records = 10000
     proxy_conf = proxy.get_proxy_conf()
     auth = launch_browser_and_get_auth(proxy_conf)
     tenders_json = send_authenticated_request(auth, max_records)

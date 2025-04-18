@@ -3,10 +3,10 @@
 WITH awards AS (
   SELECT
     tm."procurementEntity",
-    (award->>'awardAmount')::text::money AS award_amount
+    (award->>'awardAmount')::numeric AS award_amount
   FROM tender_metadata tm
   CROSS JOIN LATERAL jsonb_array_elements(tm."tenderAwardData") AS award
-  WHERE award->>'awardAmount' ~ '^\d+(\.\d+)?$'
+  WHERE award->>'awardAmount' ~ '^(\d+(\.\d*)?|\.\d+)$'
 )
 
 SELECT
