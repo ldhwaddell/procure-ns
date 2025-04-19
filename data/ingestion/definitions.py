@@ -138,15 +138,11 @@ def docker_test(
         context=context,
     ).get_results()
 
-    jwt = results.get("jwt")
-    cookies = results.get("cookies")
-    user_agent = results.get("user_agent")
+    context.log.info(f"%%%%%%%%%{results}%%%%%%%%%%%")
 
     return dg.MaterializeResult(
         metadata={
-            "jwt": dg.MetadataValue.text(jwt),
-            "cookies": dg.MetadataValue.json(cookies),
-            "user_agent": dg.MetadataValue.text(user_agent),
+            "user_agent": "test",
         }
     )
 
