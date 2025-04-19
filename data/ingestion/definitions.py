@@ -129,7 +129,7 @@ def docker_test(
     context: dg.AssetExecutionContext,
     proxy: ProxyResource,
     docker_pipes_client: PipesDockerClient,
-):
+) -> dg.MaterializeResult:
     proxy_conf = proxy.get_proxy_conf()
     results = docker_pipes_client.run(
         image="auth-scraper",
@@ -137,10 +137,16 @@ def docker_test(
         env={"PROXY_CONF": json.dumps(proxy_conf)},
         context=context,
     ).get_results()
-    context.log.info(results)
+
+    jwt = results.get("jwt")
+    cookies = results.get("cookies")
+    user_agent = results.get("user_agent")
+
     return dg.MaterializeResult(
         metadata={
-            "results": dg.MetadataValue.text(str(results)),
+            "jwt": dg.MetadataValue.text(jwt),
+            "cookies": dg.MetadataValue.json(cookies),
+            "user_agent": dg.MetadataValue.text(user_agent),
         }
     )
 
