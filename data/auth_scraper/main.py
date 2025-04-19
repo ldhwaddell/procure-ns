@@ -1,18 +1,14 @@
 import os
 import json
-import sys
-import traceback
+from dagster_pipes import open_dagster_pipes, emit
 
 
 def main():
-    try:
-        proxy_conf = json.loads(os.environ["PROXY_CONF"])
-        result = proxy_conf
-        print(json.dumps(result))
-    except Exception as e:
-        print("Unhandled exception:", e)
-        traceback.print_exc()
-        sys.exit(1)
+    conf = json.loads(os.environ["PROXY_CONF"])
+    result = {"jwt": "token123", "proxy": conf}
+
+    with open_dagster_pipes():
+        emit("auth", result)
 
 
 if __name__ == "__main__":

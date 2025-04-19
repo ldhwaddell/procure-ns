@@ -4,7 +4,7 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir playwright fake-useragent
+RUN pip install --no-cache-dir playwright fake-useragent dagster-pipes
 
 COPY . .
 
