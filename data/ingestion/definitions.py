@@ -20,11 +20,21 @@ from ingestion.utils import (
 
 @dg.asset(compute_kind="docker", group_name="ingestion")
 def new_tenders(
-    proxy: ProxyResource, dwh: DataWarehouseResource
+    proxy: ProxyResource,
+    dwh: DataWarehouseResource,
+    context: dg.AssetExecutionContext,
+    docker_pipes_client: PipesDockerClient,
 ) -> dg.MaterializeResult:
     max_records = 10000
     proxy_conf = proxy.get_proxy_conf()
-    auth = launch_browser_and_get_auth(proxy_conf)
+    # Runs the custom image and returns auth results
+    (auth,) = docker_pipes_client.run(
+        image="auth-scraper",
+        command=["python", "main.py"],
+        env={"PROXY_CONF": json.dumps(proxy_conf)},
+        context=context,
+    ).get_custom_messages()
+
     tenders_json = send_authenticated_request(auth, max_records)
 
     tenders = tenders_json.get("tenderDataList", [])
@@ -131,7 +141,7 @@ def docker_test(
     docker_pipes_client: PipesDockerClient,
 ) -> dg.MaterializeResult:
     proxy_conf = proxy.get_proxy_conf()
-    (results, ) = docker_pipes_client.run(
+    (results,) = docker_pipes_client.run(
         image="auth-scraper",
         command=["python", "main.py"],
         env={"PROXY_CONF": json.dumps(proxy_conf)},
