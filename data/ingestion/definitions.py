@@ -1,7 +1,9 @@
 import asyncio
+import json
 from datetime import datetime
 
 import dagster as dg
+from dagster_docker import PipesDockerClient
 from sqlalchemy import insert, select
 from sqlalchemy.sql import text
 
@@ -122,8 +124,28 @@ async def tender_metadata(
     )
 
 
+@dg.asset(compute_kind="docker", group_name="ingestion")
+def docker_test(
+    context: dg.AssetExecutionContext,
+    proxy: ProxyResource,
+    docker_pipes_client: PipesDockerClient,
+):
+    proxy_conf = proxy.get_proxy_conf()
+    results = docker_pipes_client.run(
+        image="auth-scraper",
+        command=["python", "main.py"],
+        env={"PROXY_CONF": json.dumps(proxy_conf)},
+        context=context,
+    ).get_results()
+    return dg.MaterializeResult(
+        metadata={
+            "results": dg.MetadataValue.text(results),
+        }
+    )
+
+
 defs = dg.Definitions(
-    assets=[new_tenders, tender_metadata],
+    assets=[new_tenders, tender_metadata, docker_test],
     resources={
         "dwh": DataWarehouseResource(
             username=dg.EnvVar("DWH_POSTGRES_USER"),
@@ -134,5 +156,6 @@ defs = dg.Definitions(
             username=dg.EnvVar("PROXY_USER"),
             password=dg.EnvVar("PROXY_PASSWORD"),
         ),
+        "docker_pipes_client": PipesDockerClient(),
     },
 )
