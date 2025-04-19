@@ -12,7 +12,6 @@ from ingestion.resources import DataWarehouseResource, ProxyResource
 from ingestion.utils import (
     AuthRotator,
     ProxyRotator,
-    launch_browser_and_get_auth,
     scrape_tender,
     send_authenticated_request,
 )
@@ -20,12 +19,12 @@ from ingestion.utils import (
 
 @dg.asset(compute_kind="docker", group_name="ingestion")
 def new_tenders(
+    context: dg.AssetExecutionContext,
     proxy: ProxyResource,
     dwh: DataWarehouseResource,
-    context: dg.AssetExecutionContext,
     docker_pipes_client: PipesDockerClient,
 ) -> dg.MaterializeResult:
-    max_records = 10000
+    max_records = 16000
     proxy_conf = proxy.get_proxy_conf()
     # Runs the custom image and returns auth results
     (auth,) = docker_pipes_client.run(
@@ -99,13 +98,22 @@ def new_tenders(
 
 @dg.asset(compute_kind="docker", group_name="ingestion", deps=[new_tenders])
 async def tender_metadata(
-    proxy: ProxyResource, dwh: DataWarehouseResource
+    context: dg.AssetExecutionContext,
+    proxy: ProxyResource,
+    dwh: DataWarehouseResource,
+    docker_pipes_client: PipesDockerClient,
 ) -> dg.MaterializeResult:
     parallel_sessions_limit = 10
     proxy_conf = proxy.get_proxy_conf()
 
     async def get_auth():
-        return await asyncio.to_thread(launch_browser_and_get_auth, proxy_conf)
+        (auth,) = docker_pipes_client.run(
+            image="auth-scraper",
+            command=["python", "main.py"],
+            env={"PROXY_CONF": json.dumps(proxy_conf)},
+            context=context,
+        ).get_custom_messages()
+        return auth
 
     # Step 1: Get all new tenders
     sync_session = dwh.get_session()

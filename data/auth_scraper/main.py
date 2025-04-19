@@ -1,7 +1,7 @@
 import os
 import json
 from dagster_pipes import open_dagster_pipes
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import Response, sync_playwright
 from fake_useragent import UserAgent
 
 TARGET_URL = "https://procurement-portal.novascotia.ca/tenders"
@@ -29,7 +29,7 @@ def launch_browser_and_get_auth(proxy_conf):
         Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
         """)
 
-        def on_response(response):
+        def on_response(response: Response):
             nonlocal jwt_token
             if response.url == WATCH_REQUEST:
                 try:
@@ -57,7 +57,6 @@ def launch_browser_and_get_auth(proxy_conf):
 
 
 if __name__ == "__main__":
-
     with open_dagster_pipes() as context:
         proxy_conf = json.loads(os.environ["PROXY_CONF"])
         result = launch_browser_and_get_auth(proxy_conf)
