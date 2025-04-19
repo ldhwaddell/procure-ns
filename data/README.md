@@ -54,7 +54,7 @@ This folder contain all required logic for the containerized deployment of the i
 
 1. Fix DBT paths in conatinerized deployment `[DONE]`
    - The current implementation does not correctly locate the target directory build by DBT. This leads to dag runs needing to re-build the `manifest.json` file as they are ran. This is messy, and will create a bottleneck as DBT project complexity grows.
-1. Use the `dagster-docker` package
+1. Use the `dagster-docker` package `[DONE]`
    - Current implementation manually spawns docker containers to pull auth credentials. This should be built into a single container, and then ran from the dagster asset. Not only is this more cohesive, it will solve the weird async + websocket addressing workarounds that are currently required.
 1. Run `tender_metadata` asset based on a sensor
    - It should not run if the `new_tenders` asset returns 0 (meaning no new awarded tenders)
