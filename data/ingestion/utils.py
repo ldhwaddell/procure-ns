@@ -155,11 +155,13 @@ async def scrape_tender(
 
             except httpx.HTTPStatusError as e:
                 log.error(
-                    f"HTTPStatusError: Request failed: {e}, Type: {type(e).__name__}"
+                    f"HTTPStatusError: Request failed: {e}, Type: {type(e).__name__} for url: {url}"
                 )
                 return
             except Exception as e:
-                log.error(f"Request failed: {e}, Type: {type(e).__name__}")
+                log.error(
+                    f"Request failed: {e}, Type: {type(e).__name__} for url: {url}"
+                )
                 return
 
         master = MasterTender(
