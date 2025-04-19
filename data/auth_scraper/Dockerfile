@@ -1,10 +1,5 @@
-FROM zenika/alpine-chrome:with-puppeteer
+FROM zenika/alpine-chrome:with-playwright
 
-RUN pip install \
-	playwright \
-	fake-useragent \
-	httpx
+COPY ./app.js .
 
-COPY ./main.py .
-
-ENTRYPOINT [ "sh", "-c", "sleep 5 && python3 main.py"]
+ENTRYPOINT ["node", "app.js"]
