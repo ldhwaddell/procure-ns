@@ -1,5 +1,5 @@
 FROM zenika/alpine-chrome:with-playwright
 
-COPY ./app.js .
+COPY ./app.mjs .
 
-ENTRYPOINT ["node", "app.js"]
+ENTRYPOINT ["node", "app.mjs"]
