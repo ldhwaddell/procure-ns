@@ -131,13 +131,14 @@ def docker_test(
     docker_pipes_client: PipesDockerClient,
 ) -> dg.MaterializeResult:
     proxy_conf = proxy.get_proxy_conf()
-    results = docker_pipes_client.run(
+    (results, ) = docker_pipes_client.run(
         image="auth-scraper",
         command=["python", "main.py"],
         env={"PROXY_CONF": json.dumps(proxy_conf)},
         context=context,
-    ).get_results()
+    ).get_custom_messages()
 
+    context.log.info(f"{type(results)}")
     context.log.info(f"%%%%%%%%%{results}%%%%%%%%%%%")
 
     return dg.MaterializeResult(

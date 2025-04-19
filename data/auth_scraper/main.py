@@ -57,9 +57,8 @@ def launch_browser_and_get_auth(proxy_conf):
 
 
 if __name__ == "__main__":
-    proxy_conf = json.loads(os.environ["PROXY_CONF"])
-
-    result = launch_browser_and_get_auth(proxy_conf)
 
     with open_dagster_pipes() as context:
-        context.report_asset_materialization(asset_key="docker_test", metadata=result)
+        proxy_conf = json.loads(os.environ["PROXY_CONF"])
+        result = launch_browser_and_get_auth(proxy_conf)
+        context.report_custom_message(result)
