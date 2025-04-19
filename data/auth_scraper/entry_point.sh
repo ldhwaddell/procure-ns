@@ -9,7 +9,7 @@ chromium-browser \
 
 echo 'Waiting for Chrome to be ready...'
 for i in $(seq 1 30); do
-	wget -q --spider http://localhost:9222/json/version && break
+	wget -q --spider http://127.0.0.1:9222/json/version && break
 	sleep 1
 	if [ "$i" -eq 30 ]; then
 		echo 'Chrome failed to start' >&2

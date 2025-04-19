@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { chromium } from "playwright-chromium";
 import http from "http";
 
 const getWsUrl = async () => {
