@@ -1,17 +1,11 @@
 import asyncio
-import json
 import random
-import time
 from datetime import datetime
 from typing import Awaitable, Callable, Dict, List, Optional, TypedDict
-from urllib.parse import quote, urlparse, urlunparse
+from urllib.parse import quote
 
-import docker
 import httpx
 from dagster import get_dagster_logger
-from docker.models.containers import Container
-from fake_useragent import UserAgent
-from playwright.sync_api import sync_playwright
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from ingestion.models import MasterTender, NewTender, TenderMetadata
@@ -42,128 +36,6 @@ def coerce_dates(data: dict, date_fields: List[str]) -> dict:
         return value
 
     return {k: parse(v) if k in date_fields else v for k, v in data.items()}
-
-
-def get_ws_url():
-    r = httpx.get(
-        "http://chrome-headless-temp:9222/json/version", headers={"Host": "localhost"}
-    )
-    r.raise_for_status()
-    u = urlparse(r.json()["webSocketDebuggerUrl"])
-    return urlunparse(u._replace(netloc=f"chrome-headless-temp:{u.port or 9222}"))
-
-
-def spawn_headless_chrome_container(timeout: int = 120, interval: int = 3) -> Container:
-    """
-    Spawns a headless Chrome container and waits until it is ready.
-
-    It checks for both the container status and the availability of the remote debugging
-    port (9222) on docker network.
-    """
-    client = docker.from_env()
-    container_name = "chrome-headless-temp"
-    log = get_dagster_logger()
-
-    try:
-        existing = client.containers.get(container_name)
-        existing.remove(force=True)
-    except docker.errors.NotFound:
-        pass
-
-    container = client.containers.run(
-        "zenika/alpine-chrome:with-puppeteer",
-        name=container_name,
-        command=(
-            "chromium-browser "
-            "--no-sandbox "
-            "--headless "
-            "--disable-gpu "
-            "--remote-debugging-address=0.0.0.0 "
-            "--remote-debugging-port=9222"
-        ),
-        shm_size="2gb",
-        detach=True,
-        network="dagster_network",
-    )
-
-    elapsed_time = 0
-    while elapsed_time < timeout:
-        try:
-            resp = httpx.get(
-                "http://chrome-headless-temp:9222/json/version",
-                timeout=1.0,
-                headers={"Host": "localhost"},
-            )
-            print(resp.json())
-            if resp.status_code == 200 and "webSocketDebuggerUrl" in resp.json():
-                log.info("Chrome container reached. Returning")
-                return container
-        except Exception:
-            pass
-
-        time.sleep(interval)
-        elapsed_time += interval
-
-    container.stop()
-    container.remove()
-    raise TimeoutError("Headless Chrome did not become ready before timeout.")
-
-
-def launch_browser_and_get_auth(proxy_conf: ProxyConf) -> AuthData:
-    TARGET_URL = "https://procurement-portal.novascotia.ca/tenders"
-    WATCH_REQUEST = (
-        "https://procurement-portal.novascotia.ca/procurementui/authenticate"
-    )
-    jwt_token = None
-    ua = UserAgent(platforms="desktop").random
-    proxy_conf = {
-        "server": f"http://{proxy_conf['server']}",
-        "username": proxy_conf["username"],
-        "password": proxy_conf["password"],
-    }
-
-    chrome_container = spawn_headless_chrome_container()
-
-    try:
-        with sync_playwright() as p:
-            browser = p.chromium.connect_over_cdp(get_ws_url())
-            context = browser.new_context(
-                proxy=proxy_conf,
-                user_agent=ua,
-                viewport={"width": 1280, "height": 800},
-            )
-            context.add_init_script("""
-            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-            Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
-            Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
-            """)
-
-            def on_response(response):
-                nonlocal jwt_token
-                if response.url == WATCH_REQUEST:
-                    body = response.text()
-                    data = json.loads(body)
-                    jwt_token = data.get("jwttoken")
-
-            context.on("response", on_response)
-
-            page = context.new_page()
-            page.goto(TARGET_URL, timeout=60000, wait_until="domcontentloaded")
-            page.wait_for_timeout(2000)
-            cookies = context.cookies()
-            browser.close()
-
-        if not jwt_token:
-            raise Exception("No token received")
-
-        return {
-            "jwt": jwt_token,
-            "cookies": cookies,
-            "user_agent": ua,
-        }
-    finally:
-        chrome_container.stop()
-        chrome_container.remove()
 
 
 def send_authenticated_request(auth_data: AuthData, records: int):

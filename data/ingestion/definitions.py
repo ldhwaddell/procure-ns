@@ -24,7 +24,7 @@ def new_tenders(
     dwh: DataWarehouseResource,
     docker_pipes_client: PipesDockerClient,
 ) -> dg.MaterializeResult:
-    max_records = 16000
+    max_records = 18000
     proxy_conf = proxy.get_proxy_conf()
     # Runs the custom image and returns auth results
     (auth,) = docker_pipes_client.run(
@@ -142,32 +142,8 @@ async def tender_metadata(
     )
 
 
-@dg.asset(compute_kind="docker", group_name="ingestion")
-def docker_test(
-    context: dg.AssetExecutionContext,
-    proxy: ProxyResource,
-    docker_pipes_client: PipesDockerClient,
-) -> dg.MaterializeResult:
-    proxy_conf = proxy.get_proxy_conf()
-    (results,) = docker_pipes_client.run(
-        image="auth-scraper",
-        command=["python", "main.py"],
-        env={"PROXY_CONF": json.dumps(proxy_conf)},
-        context=context,
-    ).get_custom_messages()
-
-    context.log.info(f"{type(results)}")
-    context.log.info(f"%%%%%%%%%{results}%%%%%%%%%%%")
-
-    return dg.MaterializeResult(
-        metadata={
-            "user_agent": "test",
-        }
-    )
-
-
 defs = dg.Definitions(
-    assets=[new_tenders, tender_metadata, docker_test],
+    assets=[new_tenders, tender_metadata],
     resources={
         "dwh": DataWarehouseResource(
             username=dg.EnvVar("DWH_POSTGRES_USER"),

@@ -7,7 +7,6 @@ RUN pip install \
 	dagster \
 	dagster-postgres \
 	dagster-docker \
-	docker \
 	playwright \
 	fake-useragent \
 	httpx \
