@@ -137,9 +137,10 @@ def docker_test(
         env={"PROXY_CONF": json.dumps(proxy_conf)},
         context=context,
     ).get_results()
+    context.log.info(results)
     return dg.MaterializeResult(
         metadata={
-            "results": dg.MetadataValue.text(results),
+            "results": dg.MetadataValue.text(str(results)),
         }
     )
 
