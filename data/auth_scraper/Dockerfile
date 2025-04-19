@@ -1,10 +1,9 @@
-FROM zenika/alpine-chrome:with-playwright
+FROM mcr.microsoft.com/playwright/python:v1.51.0-noble
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
-COPY app.mjs .
-COPY entry_point.sh .
+RUN pip install --no-cache-dir playwright
 
-USER chrome
+COPY . .
 
-ENTRYPOINT ["./entry_point.sh"]
+ENTRYPOINT ["python", "main.py"]
