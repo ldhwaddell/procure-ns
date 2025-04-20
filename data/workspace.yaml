@@ -9,3 +9,9 @@ load_from:
       host: transformation
       port: 4010
       location_name: "transformation"
+
+
+  - grpc_server:
+      host: transformation
+      port: 4020
+      location_name: "transformation"

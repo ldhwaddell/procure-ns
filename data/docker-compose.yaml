@@ -104,6 +104,26 @@ services:
       dwh:
         condition: service_healthy
 
+  duck_test:
+    image: duck_test
+    build:
+      context: ./duck_test
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      DWH_DUCKDB: ${DWH_DUCKDB}
+      PROXY_USER: ${PROXY_USER}
+      PROXY_PASSWORD: ${PROXY_PASSWORD}
+    networks:
+      - dagster_network
+    volumes:
+      - /tmp/procure-ns/db.duckdb:/data/db.duckdb
+      - /var/run/docker.sock:/var/run/docker.sock 
+    depends_on:
+      dagster_postgresql:
+        condition: service_healthy
+
+
   # This service runs dagster-webserver, which loads your user code from the user code container.
   # Since our instance uses the QueuedRunCoordinator, any runs submitted from the webserver will be put on
   # a queue and later dequeued and launched by dagster-daemon.
