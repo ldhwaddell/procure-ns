@@ -13,7 +13,6 @@ RUN pip install \
 # Add repository code
 
 WORKDIR /opt/dagster/app
-RUN mkdir data
 COPY . /opt/dagster/app/duck_test
 
 # Run dagster gRPC server on port 4000
