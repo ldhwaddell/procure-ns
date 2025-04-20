@@ -14,3 +14,4 @@ SELECT
   SUM(award_amount) AS total_tender_value
 FROM awards
 GROUP BY "procurementEntity"
+ORDER BY SUM(award_amount) DESC
