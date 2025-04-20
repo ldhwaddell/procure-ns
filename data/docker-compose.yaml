@@ -112,6 +112,7 @@ services:
     restart: always
     environment:
       DWH_DUCKDB: ${DWH_DUCKDB}
+      DAGSTER_CURRENT_IMAGE: "duck_test"
       PROXY_USER: ${PROXY_USER}
       PROXY_PASSWORD: ${PROXY_PASSWORD}
     networks:
@@ -181,6 +182,7 @@ services:
       DWH_POSTGRES_USER: ${DWH_POSTGRES_USER}
       DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD}
       DWH_POSTGRES_DB: ${DWH_POSTGRES_DB}
+      DWH_DUCKDB: ${DWH_DUCKDB}
       PROXY_USER: ${PROXY_USER}
       PROXY_PASSWORD: ${PROXY_PASSWORD}
     volumes: # Make docker client accessible, so we can launch containers using host docker

@@ -12,6 +12,6 @@ load_from:
 
 
   - grpc_server:
-      host: transformation
+      host: duck_test
       port: 4020
-      location_name: "transformation"
+      location_name: "duck_test"
