@@ -1,22 +1,17 @@
 FROM python:3.10-slim
 
-# Checkout and install dagster libraries needed to run the gRPC server
-# exposing your repository to dagster-webserver and dagster-daemon, and to load the DagsterInstance
-
 RUN pip install \
 	dagster \
 	dagster-postgres \
 	dagster-docker \
+	dagster-duckdb \
+	dagster-duckdb-pandas \
 	playwright \
 	fake-useragent \
 	httpx \
 	asyncpg
 
-
-# Add repository code
-
 WORKDIR /opt/dagster/app
-RUN mkdir data
 COPY . /opt/dagster/app/ingestion
 
 # Run dagster gRPC server on port 4000
