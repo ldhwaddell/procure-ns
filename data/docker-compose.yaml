@@ -188,6 +188,7 @@ services:
     volumes: # Make docker client accessible, so we can launch containers using host docker
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/io_manager_storage:/tmp/io_manager_storage
+      - /tmp/procure-ns:/db
     networks:
       - dagster_network
     depends_on:
