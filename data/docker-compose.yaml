@@ -118,7 +118,7 @@ services:
     networks:
       - dagster_network
     volumes:
-      - ./shared:/shared
+      - ${SHARED_DIR}:/shared
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       dagster_postgresql:
@@ -188,7 +188,7 @@ services:
     volumes: # Make docker client accessible, so we can launch containers using host docker
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/io_manager_storage:/tmp/io_manager_storage
-      - ./shared:/shared
+      - ${SHARED_DIR}:/shared
     networks:
       - dagster_network
     depends_on:
