@@ -118,8 +118,8 @@ services:
     networks:
       - dagster_network
     volumes:
-      - /tmp/procure-ns/db.duckdb:/data/db.duckdb
-      - /var/run/docker.sock:/var/run/docker.sock 
+      - /tmp/procure-ns:/db
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       dagster_postgresql:
         condition: service_healthy
