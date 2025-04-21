@@ -60,3 +60,7 @@ This folder contain all required logic for the containerized deployment of the i
    - It should not run if the `new_tenders` asset returns 0 (meaning no new awarded tenders)
 1. Build out DBT models
 1. Investigate switching to `duckdb` as data warehouse
+
+### Notes
+
+1. Can't use env vars in dagster.yaml like we can with docker compose. See [issue](https://github.com/dagster-io/dagster/issues/18729)
