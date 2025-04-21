@@ -1,15 +1,13 @@
 import asyncio
 import json
-from datetime import datetime
 
 import dagster as dg
 import pandas as pd
 from dagster_docker import PipesDockerClient
 from dagster_duckdb import DuckDBResource
-from sqlalchemy import insert, select
-from sqlalchemy.sql import text
+from sqlalchemy import select
 
-from ingestion.models import MasterTender, NewTender
+from ingestion.models import NewTender
 from ingestion.resources import DataWarehouseResource, ProxyResource
 from ingestion.utils import (
     AuthRotator,
@@ -30,6 +28,9 @@ def new_tenders(
     proxy_conf = proxy.get_proxy_conf()
 
     # Runs the custom image and returns auth results
+    # the first item in the response sequence is guaranteed to be the auth data,
+    # unless an error ocurred in which case the asset would already have failed
+
     (auth,) = docker_pipes_client.run(
         image="auth-scraper",
         command=["python", "main.py"],
