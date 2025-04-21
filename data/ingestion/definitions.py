@@ -46,23 +46,13 @@ def new_tenders(
             "id": t["id"],
             "tenderId": t["tenderId"],
             "title": t.get("title"),
-            "solicitationType": t.get("solicitationType"),
-            "procurementEntity": t.get("procurementEntity"),
-            "endUserEntity": t.get("endUserEntity"),
-            "closingDate": datetime.fromisoformat(t["closingDate"])
-            if t.get("closingDate")
-            else None,
-            "postDate": datetime.fromisoformat(t["postDate"]).date()
-            if t.get("postDate")
-            else None,
-            "tenderStatus": t.get("tenderStatus"),
         }
         for t in tenders
     ]
 
     df = pd.DataFrame(incoming_rows)
 
-    # Create an empty table based on the tenders df. Do not copy data into it. This can be stripped down. Really just need ID and tenderId
+    # Create the new table of unscraped tenders based on those that have not been inserted into the raw_tenders table yet
     with duckdb.get_connection() as conn:
         conn.execute(
             """
@@ -74,43 +64,16 @@ def new_tenders(
             """
         )
 
-    # New tenders can be a left join of
+        preview_query = "select * from new_tenders limit 10"
+        preview_df = conn.execute(preview_query).fetchdf()
 
-    # ddl = """
-    #     DROP TABLE IF EXISTS new_tenders;
-    #
-    #     CREATE TABLE new_tenders (
-    #         "id" INTEGER PRIMARY KEY,
-    #         "tenderId" TEXT,
-    #         "title" TEXT,
-    #         "solicitationType" TEXT,
-    #         "procurementEntity" TEXT,
-    #         "endUserEntity" TEXT,
-    #         "closingDate" TIMESTAMP,
-    #         "postDate" DATE,
-    #         "tenderStatus" TEXT
-    #     )
-    # """
-    #
-    # Session = dwh.get_session()
-    # with Session() as session:
-    #     session.execute(text(ddl))
-    #
-    #     existing_ids = {
-    #         row[0] for row in session.execute(select(MasterTender.id)).all()
-    #     }
-    #
-    #     # Filter rows that are not in MasterTender
-    #     new_rows = [row for row in incoming_rows if row["id"] not in existing_ids]
-    #
-    #     if new_rows:
-    #         session.execute(insert(NewTender), new_rows)
-    #
-    #     session.commit()
+        row_count = conn.execute("select count(*) from new_tenders").fetchone()
+        count = row_count[0] if row_count else 0
 
     return dg.MaterializeResult(
         metadata={
-            "new_records_ingested": dg.MetadataValue.int(5),
+            "row_count": dg.MetadataValue.int(count),
+            "preview": dg.MetadataValue.md(preview_df.to_markdown(index=False)),
         }
     )
 
