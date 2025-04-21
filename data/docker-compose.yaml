@@ -56,6 +56,7 @@ services:
       DAGSTER_POSTGRES_PASSWORD: ${DAGSTER_POSTGRES_PASSWORD}
       DAGSTER_POSTGRES_DB: ${DAGSTER_POSTGRES_DB}
       DAGSTER_CURRENT_IMAGE: "ingestion"
+      DWH_DUCKDB: ${DWH_DUCKDB}
       DWH_POSTGRES_USER: ${DWH_POSTGRES_USER}
       DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD}
       DWH_POSTGRES_DB: ${DWH_POSTGRES_DB}
@@ -69,8 +70,7 @@ services:
       retries: 10
       start_period: 10s
     volumes:
-      # - /opt/dagster/dagster_home:/tmp/dagster-data
-      - /var/run/docker.sock:/var/run/docker.sock # can maybe be removed once dagster-docker installed
+      - ${SHARED_DIR}:/shared
     depends_on:
       dwh:
         condition: service_healthy
