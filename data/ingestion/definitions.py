@@ -3,7 +3,9 @@ import json
 from datetime import datetime
 
 import dagster as dg
+import pandas as pd
 from dagster_docker import PipesDockerClient
+from dagster_duckdb import DuckDBResource
 from sqlalchemy import insert, select
 from sqlalchemy.sql import text
 
@@ -21,11 +23,12 @@ from ingestion.utils import (
 def new_tenders(
     context: dg.AssetExecutionContext,
     proxy: ProxyResource,
-    dwh: DataWarehouseResource,
+    duckdb: DuckDBResource,
     docker_pipes_client: PipesDockerClient,
 ) -> dg.MaterializeResult:
     max_records = 18000
     proxy_conf = proxy.get_proxy_conf()
+
     # Runs the custom image and returns auth results
     (auth,) = docker_pipes_client.run(
         image="auth-scraper",
@@ -57,41 +60,52 @@ def new_tenders(
         for t in tenders
     ]
 
-    ddl = """
-        DROP TABLE IF EXISTS new_tenders;
+    df = pd.DataFrame(incoming_rows)
 
-        CREATE TABLE new_tenders (
-            "id" INTEGER PRIMARY KEY,
-            "tenderId" TEXT,
-            "title" TEXT,
-            "solicitationType" TEXT,
-            "procurementEntity" TEXT,
-            "endUserEntity" TEXT,
-            "closingDate" TIMESTAMP,
-            "postDate" DATE,
-            "tenderStatus" TEXT
+    # Create an empty table based on the tenders df. Do not copy data into it
+    with duckdb.get_connection() as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS new_tenders AS
+            SELECT * FROM df
+            """
         )
-    """
 
-    Session = dwh.get_session()
-    with Session() as session:
-        session.execute(text(ddl))
-
-        existing_ids = {
-            row[0] for row in session.execute(select(MasterTender.id)).all()
-        }
-
-        # Filter rows that are not in MasterTender
-        new_rows = [row for row in incoming_rows if row["id"] not in existing_ids]
-
-        if new_rows:
-            session.execute(insert(NewTender), new_rows)
-
-        session.commit()
+    # ddl = """
+    #     DROP TABLE IF EXISTS new_tenders;
+    #
+    #     CREATE TABLE new_tenders (
+    #         "id" INTEGER PRIMARY KEY,
+    #         "tenderId" TEXT,
+    #         "title" TEXT,
+    #         "solicitationType" TEXT,
+    #         "procurementEntity" TEXT,
+    #         "endUserEntity" TEXT,
+    #         "closingDate" TIMESTAMP,
+    #         "postDate" DATE,
+    #         "tenderStatus" TEXT
+    #     )
+    # """
+    #
+    # Session = dwh.get_session()
+    # with Session() as session:
+    #     session.execute(text(ddl))
+    #
+    #     existing_ids = {
+    #         row[0] for row in session.execute(select(MasterTender.id)).all()
+    #     }
+    #
+    #     # Filter rows that are not in MasterTender
+    #     new_rows = [row for row in incoming_rows if row["id"] not in existing_ids]
+    #
+    #     if new_rows:
+    #         session.execute(insert(NewTender), new_rows)
+    #
+    #     session.commit()
 
     return dg.MaterializeResult(
         metadata={
-            "new_records_ingested": dg.MetadataValue.int(len(new_rows)),
+            "new_records_ingested": dg.MetadataValue.int(len(5)),
         }
     )
 
@@ -155,5 +169,8 @@ defs = dg.Definitions(
             password=dg.EnvVar("PROXY_PASSWORD"),
         ),
         "docker_pipes_client": PipesDockerClient(),
+        "duckdb": DuckDBResource(
+            database=dg.EnvVar("DWH_DUCKDB"),
+        ),
     },
 )
