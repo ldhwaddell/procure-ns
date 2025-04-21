@@ -62,14 +62,19 @@ def new_tenders(
 
     df = pd.DataFrame(incoming_rows)
 
-    # Create an empty table based on the tenders df. Do not copy data into it
+    # Create an empty table based on the tenders df. Do not copy data into it. This can be stripped down. Really just need ID and tenderId
     with duckdb.get_connection() as conn:
         conn.execute(
             """
-            CREATE TABLE IF NOT EXISTS new_tenders AS
-            SELECT * FROM df
+            CREATE OR REPLACE TABLE new_tenders AS 
+            SELECT df.*
+            FROM df
+            LEFT JOIN raw_tenders rt ON df.id = rt.id
+            WHERE rt.id IS NULL
             """
         )
+
+    # New tenders can be a left join of
 
     # ddl = """
     #     DROP TABLE IF EXISTS new_tenders;
@@ -105,7 +110,7 @@ def new_tenders(
 
     return dg.MaterializeResult(
         metadata={
-            "new_records_ingested": dg.MetadataValue.int(len(5)),
+            "new_records_ingested": dg.MetadataValue.int(5),
         }
     )
 
