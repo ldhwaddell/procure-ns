@@ -126,9 +126,16 @@ async def tender_metadata(
         ]
     )
 
+    context.log.info(f"Columns: {tender_metadata_df.columns}")
+
     with duckdb.get_connection() as conn:
         conn.execute("insert into raw_tenders select * from tender_metadata_df")
 
+        expected_columns = (
+            conn.execute("PRAGMA table_info('raw_tenders')").fetchdf()["name"].tolist()
+        )
+
+        context.log.info(f"Expected cols: {expected_columns}")
         preview_query = "select * from raw_tenders limit 10"
         preview_df = conn.execute(preview_query).fetchdf()
 
