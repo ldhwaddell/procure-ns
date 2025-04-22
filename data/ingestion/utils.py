@@ -148,22 +148,30 @@ async def scrape_tender(
             try:
                 response = await client.post(url, json={})
                 response.raise_for_status()
-                data = response.json()
+
                 log.info(f"Received code: {response.status_code} for url: {url}")
+
+                data = response.json()
+                tender_payloads = data.get("tenderDataList")
+
                 await asyncio.sleep(random.uniform(0.5, 2))
-                return data
+                return tender_payloads
 
             except httpx.HTTPStatusError as e:
                 log.error(
-                    f"HTTPStatusError: Request failed: {e}, Type: {type(e).__name__} for url: {url}"
+                    f"[HTTPStatusError] {e.response.status_code} {e.response.reason_phrase} for {url} — Response: {e.response.text}"
                 )
-                return
-            except Exception as e:
-                log.error(
-                    f"Request failed: {e}, Type: {type(e).__name__} for url: {url}"
-                )
-                return
+                return None
 
+            except httpx.RequestError as e:
+                log.error(
+                    f"[RequestError] Request failed due to network or connection issue: {e} for url: {url}"
+                )
+                return None
+
+            except Exception as e:
+                log.error(f"[UnhandledError] Unexpected error for url {url}: {e}")
+                return None
         # master = MasterTender(
         #     id=tender.id,
         #     tenderId=tender.tenderId,
