@@ -116,7 +116,15 @@ async def tender_metadata(
 
     tender_metadata = await asyncio.gather(*tasks)
 
-    tender_metadata_df = pd.DataFrame([r for r in tender_metadata if r is not None])
+    # Flatten and remove empties
+    tender_metadata_df = pd.DataFrame(
+        [
+            item
+            for tender_list in tender_metadata
+            if tender_list is not None
+            for item in tender_list
+        ]
+    )
 
     with duckdb.get_connection() as conn:
         conn.execute("insert into raw_tenders select * from tender_metadata_df")
