@@ -24,7 +24,7 @@ def new_tenders(
     duckdb: DuckDBResource,
     docker_pipes_client: PipesDockerClient,
 ) -> dg.MaterializeResult:
-    max_records = 18000
+    max_records = 50
     proxy_conf = proxy.get_proxy_conf()
 
     # Runs the custom image and returns auth results
@@ -73,8 +73,10 @@ def new_tenders(
 
     return dg.MaterializeResult(
         metadata={
-            "row_count": dg.MetadataValue.int(count),
-            "preview": dg.MetadataValue.md(preview_df.to_markdown(index=False)),
+            "new_tenders_row_count": dg.MetadataValue.int(count),
+            "new_tenders_preview": dg.MetadataValue.md(
+                preview_df.to_markdown(index=False)
+            ),
         }
     )
 
@@ -83,6 +85,7 @@ def new_tenders(
 async def tender_metadata(
     context: dg.AssetExecutionContext,
     proxy: ProxyResource,
+    duckdb: DuckDBResource,
     dwh: DataWarehouseResource,
     docker_pipes_client: PipesDockerClient,
 ) -> dg.MaterializeResult:
@@ -98,13 +101,8 @@ async def tender_metadata(
         ).get_custom_messages()
         return auth
 
-    # Step 1: Get all new tenders
-    sync_session = dwh.get_session()
-    with sync_session() as session:
-        new_tenders = session.execute(select(NewTender)).scalars().all()
-
-    # Step 2: Process tenders asynchronously
-    async_session = dwh.get_async_session()
+    with duckdb.get_connection() as conn:
+        new_tenders = conn.execute("select * from new_tenders").fetchdf()
 
     semaphore = asyncio.Semaphore(parallel_sessions_limit)
     proxy_rotator = ProxyRotator(50, proxy.get_proxy_conf)
@@ -112,17 +110,54 @@ async def tender_metadata(
     timeout = 30
 
     tasks = [
-        scrape_tender(t, proxy_rotator, auth_rotator, async_session, timeout, semaphore)
-        for t in new_tenders
+        scrape_tender(tender_id, proxy_rotator, auth_rotator, timeout, semaphore)
+        for tender_id in new_tenders["tenderId"]
     ]
-    await asyncio.gather(*tasks)
+
+    tender_metadata = await asyncio.gather(*tasks)
+
+    tender_metadata_df = pd.DataFrame([r for r in tender_metadata if r is not None])
+
+    with duckdb.get_connection() as conn:
+        conn.execute("insert into raw_tenders select * from tender_metadata_df")
+
+        preview_query = "select * from raw_tenders limit 10"
+        preview_df = conn.execute(preview_query).fetchdf()
+
+        row_count = conn.execute("select count(*) from raw_tenders").fetchone()
+        count = row_count[0] if row_count else 0
 
     return dg.MaterializeResult(
         metadata={
-            "new_tenders": dg.MetadataValue.int(len(new_tenders)),
-            "tasks": dg.MetadataValue.int(len(tasks)),
+            "raw_tenders_row_count": dg.MetadataValue.int(count),
+            "raw_tenders_preview": dg.MetadataValue.md(
+                preview_df.to_markdown(index=False)
+            ),
         }
     )
+
+    # # Step 1: Get all new tenders
+    # sync_session = dwh.get_session()
+    # with sync_session() as session:
+    #     new_tenders = session.execute(select(NewTender)).scalars().all()
+    #
+    # # Step 2: Process tenders asynchronously
+    # async_session = dwh.get_async_session()
+    #
+    #
+    # tasks = [
+    #     scrape_tender(t, proxy_rotator, auth_rotator, async_session, timeout, semaphore)
+    #     for t in new_tenders
+    # ]
+    # await asyncio.gather(*tasks)
+    #
+    # return dg.MaterializeResult(
+    #     metadata={
+    #         "new_tenders": dg.MetadataValue.int(len(new_tenders)),
+    #         "tasks": dg.MetadataValue.int(len(tasks)),
+    #     }
+    # )
+    #
 
 
 defs = dg.Definitions(

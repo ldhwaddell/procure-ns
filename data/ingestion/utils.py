@@ -106,20 +106,19 @@ class AuthRotator:
 
 
 async def scrape_tender(
-    tender: NewTender,
+    tender_id: str,
     proxy_rotator: ProxyRotator,
     auth_rotator: AuthRotator,
-    session_factory: async_sessionmaker[AsyncSession],
     timeout: int,
     semaphore: asyncio.Semaphore,
 ):
     base_url = (
         "https://procurement-portal.novascotia.ca/procurementui/tenders?tenderId={}"
     )
-    date_fields = ["createdDate", "modifiedDate"]
+    # date_fields = ["createdDate", "modifiedDate"]
 
     log = get_dagster_logger()
-    id = quote(tender.tenderId, safe="")
+    id = quote(tender_id, safe="")
     url = base_url.format(id)
     async with semaphore:
         proxy_url = await proxy_rotator.get_proxy()
@@ -152,6 +151,7 @@ async def scrape_tender(
                 data = response.json()
                 log.info(f"Received code: {response.status_code} for url: {url}")
                 await asyncio.sleep(random.uniform(0.5, 2))
+                return data
 
             except httpx.HTTPStatusError as e:
                 log.error(
@@ -164,36 +164,36 @@ async def scrape_tender(
                 )
                 return
 
-        master = MasterTender(
-            id=tender.id,
-            tenderId=tender.tenderId,
-            title=tender.title,
-            solicitationType=tender.solicitationType,
-            procurementEntity=tender.procurementEntity,
-            endUserEntity=tender.endUserEntity,
-            closingDate=tender.closingDate,
-            postDate=tender.postDate,
-            tenderStatus=tender.tenderStatus,
-        )
-
-        tender_payloads = data.get("tenderDataList")
-        if not tender_payloads:
-            log.warning(f"No tenderDataList found for tender {tender.tenderId}")
-            return
-
-        tender_data = tender_payloads[0]
-
-        tender_data = coerce_dates(tender_data, date_fields)
-
-        metadata = TenderMetadata(
-            **{
-                k: v
-                for k, v in tender_data.items()
-                if k in TenderMetadata.__table__.columns.keys()
-            }
-        )
-        master.tenderMetadata = metadata
-
-        async with session_factory() as session:
-            session.add(master)
-            await session.commit()
+        # master = MasterTender(
+        #     id=tender.id,
+        #     tenderId=tender.tenderId,
+        #     title=tender.title,
+        #     solicitationType=tender.solicitationType,
+        #     procurementEntity=tender.procurementEntity,
+        #     endUserEntity=tender.endUserEntity,
+        #     closingDate=tender.closingDate,
+        #     postDate=tender.postDate,
+        #     tenderStatus=tender.tenderStatus,
+        # )
+        #
+        # tender_payloads = data.get("tenderDataList")
+        # if not tender_payloads:
+        #     log.warning(f"No tenderDataList found for tender {tender.tenderId}")
+        #     return
+        #
+        # tender_data = tender_payloads[0]
+        #
+        # tender_data = coerce_dates(tender_data, date_fields)
+        #
+        # metadata = TenderMetadata(
+        #     **{
+        #         k: v
+        #         for k, v in tender_data.items()
+        #         if k in TenderMetadata.__table__.columns.keys()
+        #     }
+        # )
+        # master.tenderMetadata = metadata
+        #
+        # async with session_factory() as session:
+        #     session.add(master)
+        #     await session.commit()
