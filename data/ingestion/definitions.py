@@ -81,6 +81,31 @@ def new_tenders(
     )
 
 
+def coerce_datetime_columns(df: pd.DataFrame) -> pd.DataFrame:
+    timestamp_fields = {"createdDate", "modifiedDate", "issuedDate", "closingDate"}
+
+    time_fields = {"closingTime", "publicOpeningTime"}
+
+    date_fields = {"postDate"}
+
+    # TIMESTAMP columns
+    for col in timestamp_fields:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce")
+
+    # TIME columns (hh:mm:ss as string)
+    for col in time_fields:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce").dt.time
+
+    # DATE columns (Y-m-d only)
+    for col in date_fields:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
+
+    return df
+
+
 @dg.asset(compute_kind="docker", group_name="ingestion", deps=[new_tenders])
 async def tender_metadata(
     context: dg.AssetExecutionContext,
