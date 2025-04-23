@@ -7,7 +7,7 @@ import pandas as pd
 from dagster_docker import PipesDockerClient
 from dagster_duckdb import DuckDBResource
 
-from ingestion.resources import DataWarehouseResource, ProxyResource
+from ingestion.resources import ProxyResource
 from ingestion.utils import (
     AuthRotator,
     ProxyRotator,
@@ -24,7 +24,7 @@ def new_tenders(
     duckdb: DuckDBResource,
     docker_pipes_client: PipesDockerClient,
 ) -> dg.MaterializeResult:
-    max_records = 100
+    max_records = 1000
     proxy_conf = proxy.get_proxy_conf()
 
     # Runs the custom image and returns auth results
