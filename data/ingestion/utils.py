@@ -1,14 +1,10 @@
 import asyncio
 import random
-from datetime import datetime
 from typing import Awaitable, Callable, Dict, List, Optional, TypedDict
 from urllib.parse import quote
 
 import httpx
 from dagster import get_dagster_logger
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-
-from ingestion.models import MasterTender, NewTender, TenderMetadata
 
 
 class ProxyConf(TypedDict):
@@ -23,19 +19,18 @@ class AuthData(TypedDict):
     user_agent: str
 
 
-def coerce_dates(data: dict, date_fields: List[str]) -> dict:
-    def parse(value):
-        if value and isinstance(value, str):
-            try:
-                return datetime.strptime(value, "%Y-%m-%d %H:%M:%S.%f")
-            except ValueError:
-                try:
-                    return datetime.strptime(value, "%Y-%m-%d")
-                except ValueError:
-                    return value
-        return value
-
-    return {k: parse(v) if k in date_fields else v for k, v in data.items()}
+def table_exists(conn, table_name: str) -> bool:
+    return (
+        conn.execute(
+            """
+            SELECT COUNT(*) 
+            FROM information_schema.tables 
+            WHERE lower(table_name) = lower(?)
+            """,
+            [table_name],
+        ).fetchone()[0]
+        > 0
+    )
 
 
 def send_authenticated_request(auth_data: AuthData, records: int):
@@ -115,7 +110,6 @@ async def scrape_tender(
     base_url = (
         "https://procurement-portal.novascotia.ca/procurementui/tenders?tenderId={}"
     )
-    # date_fields = ["createdDate", "modifiedDate"]
 
     log = get_dagster_logger()
     id = quote(tender_id, safe="")
@@ -172,36 +166,3 @@ async def scrape_tender(
             except Exception as e:
                 log.error(f"[UnhandledError] Unexpected error for url {url}: {e}")
                 return None
-        # master = MasterTender(
-        #     id=tender.id,
-        #     tenderId=tender.tenderId,
-        #     title=tender.title,
-        #     solicitationType=tender.solicitationType,
-        #     procurementEntity=tender.procurementEntity,
-        #     endUserEntity=tender.endUserEntity,
-        #     closingDate=tender.closingDate,
-        #     postDate=tender.postDate,
-        #     tenderStatus=tender.tenderStatus,
-        # )
-        #
-        # tender_payloads = data.get("tenderDataList")
-        # if not tender_payloads:
-        #     log.warning(f"No tenderDataList found for tender {tender.tenderId}")
-        #     return
-        #
-        # tender_data = tender_payloads[0]
-        #
-        # tender_data = coerce_dates(tender_data, date_fields)
-        #
-        # metadata = TenderMetadata(
-        #     **{
-        #         k: v
-        #         for k, v in tender_data.items()
-        #         if k in TenderMetadata.__table__.columns.keys()
-        #     }
-        # )
-        # master.tenderMetadata = metadata
-        #
-        # async with session_factory() as session:
-        #     session.add(master)
-        #     await session.commit()

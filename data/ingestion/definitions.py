@@ -6,15 +6,14 @@ import dagster as dg
 import pandas as pd
 from dagster_docker import PipesDockerClient
 from dagster_duckdb import DuckDBResource
-from sqlalchemy import select
 
-from ingestion.models import NewTender
 from ingestion.resources import DataWarehouseResource, ProxyResource
 from ingestion.utils import (
     AuthRotator,
     ProxyRotator,
     scrape_tender,
     send_authenticated_request,
+    table_exists,
 )
 
 
@@ -25,7 +24,7 @@ def new_tenders(
     duckdb: DuckDBResource,
     docker_pipes_client: PipesDockerClient,
 ) -> dg.MaterializeResult:
-    max_records = 50
+    max_records = 100
     proxy_conf = proxy.get_proxy_conf()
 
     # Runs the custom image and returns auth results
@@ -87,7 +86,6 @@ async def tender_metadata(
     context: dg.AssetExecutionContext,
     proxy: ProxyResource,
     duckdb: DuckDBResource,
-    dwh: DataWarehouseResource,
     docker_pipes_client: PipesDockerClient,
 ) -> dg.MaterializeResult:
     parallel_sessions_limit = 10
@@ -135,16 +133,17 @@ async def tender_metadata(
 
             # Register the memory filesystem and create the table
             conn.register_filesystem(memfs)
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS raw_tenders AS SELECT * FROM read_json_auto('memory://tender_metadata.json')"
-            )
-            context.log.info("'raw_tenders' table created")
 
-            # Insert the data into the table
-            conn.execute(
-                "INSERT INTO raw_tenders SELECT * FROM read_json_auto('memory://tender_metadata.json')"
-            )
-            context.log.info("Tenders inserted")
+            if table_exists(conn, "raw_tenders"):
+                conn.execute(
+                    "INSERT INTO raw_tenders SELECT * FROM read_json_auto('memory://tender_metadata.json')"
+                )
+                context.log.info("Tenders inserted")
+            else:
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS raw_tenders AS SELECT * FROM read_json_auto('memory://tender_metadata.json')"
+                )
+                context.log.info("'raw_tenders' table created")
 
         preview_query = "select * from raw_tenders limit 10"
         preview_df = conn.execute(preview_query).fetchdf()
@@ -160,29 +159,6 @@ async def tender_metadata(
             ),
         }
     )
-
-    # # Step 1: Get all new tenders
-    # sync_session = dwh.get_session()
-    # with sync_session() as session:
-    #     new_tenders = session.execute(select(NewTender)).scalars().all()
-    #
-    # # Step 2: Process tenders asynchronously
-    # async_session = dwh.get_async_session()
-    #
-    #
-    # tasks = [
-    #     scrape_tender(t, proxy_rotator, auth_rotator, async_session, timeout, semaphore)
-    #     for t in new_tenders
-    # ]
-    # await asyncio.gather(*tasks)
-    #
-    # return dg.MaterializeResult(
-    #     metadata={
-    #         "new_tenders": dg.MetadataValue.int(len(new_tenders)),
-    #         "tasks": dg.MetadataValue.int(len(tasks)),
-    #     }
-    # )
-    #
 
 
 defs = dg.Definitions(
