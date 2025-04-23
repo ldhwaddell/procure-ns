@@ -55,15 +55,19 @@ def new_tenders(
 
     # Create the new table of unscraped tenders based on those that have not been inserted into the raw_tenders table yet
     with duckdb.get_connection() as conn:
-        conn.execute(
-            """
-            CREATE OR REPLACE TABLE new_tenders AS 
-            SELECT df.*
-            FROM df
-            LEFT JOIN raw_tenders rt ON df.id = rt.id
-            WHERE rt.id IS NULL
-            """
-        )
+        if table_exists(conn, "raw_tenders"):
+            conn.execute("""
+                CREATE OR REPLACE TABLE new_tenders AS 
+                SELECT df.*
+                FROM df
+                LEFT JOIN raw_tenders rt ON df.id = rt.id
+                WHERE rt.id IS NULL
+            """)
+        else:
+            conn.execute("""
+                CREATE OR REPLACE TABLE new_tenders AS 
+                SELECT * FROM df
+            """)
 
         preview_query = "select * from new_tenders limit 10"
         preview_df = conn.execute(preview_query).fetchdf()
@@ -101,7 +105,7 @@ async def tender_metadata(
         return auth
 
     with duckdb.get_connection() as conn:
-        new_tenders = conn.execute("select * from new_tenders").fetchdf()
+        new_tenders = conn.execute("SELECT * FROM new_tenders").fetchdf()
 
     semaphore = asyncio.Semaphore(parallel_sessions_limit)
     proxy_rotator = ProxyRotator(50, proxy.get_proxy_conf)
@@ -145,10 +149,10 @@ async def tender_metadata(
                 )
                 context.log.info("'raw_tenders' table created")
 
-        preview_query = "select * from raw_tenders limit 10"
+        preview_query = "SELECT * FROM RAW_TENDERS limit 10"
         preview_df = conn.execute(preview_query).fetchdf()
 
-        row_count = conn.execute("select count(*) from raw_tenders").fetchone()
+        row_count = conn.execute("SELECT COUNT(*) FROM raw_tenders").fetchone()
         count = row_count[0] if row_count else 0
 
     return dg.MaterializeResult(
