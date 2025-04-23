@@ -1,4 +1,5 @@
 import asyncio
+import fsspec
 import json
 
 import dagster as dg
@@ -81,31 +82,6 @@ def new_tenders(
     )
 
 
-def coerce_datetime_columns(df: pd.DataFrame) -> pd.DataFrame:
-    timestamp_fields = {"createdDate", "modifiedDate", "issuedDate", "closingDate"}
-
-    time_fields = {"closingTime", "publicOpeningTime"}
-
-    date_fields = {"postDate"}
-
-    # TIMESTAMP columns
-    for col in timestamp_fields:
-        if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce")
-
-    # TIME columns (hh:mm:ss as string)
-    for col in time_fields:
-        if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce").dt.time
-
-    # DATE columns (Y-m-d only)
-    for col in date_fields:
-        if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
-
-    return df
-
-
 @dg.asset(compute_kind="docker", group_name="ingestion", deps=[new_tenders])
 async def tender_metadata(
     context: dg.AssetExecutionContext,
@@ -139,28 +115,37 @@ async def tender_metadata(
         for tender_id in new_tenders["tenderId"]
     ]
 
+    # 2D array: [[metadata], [metadata], None, ...]
     tender_metadata = await asyncio.gather(*tasks)
 
     # Flatten and remove empties
-    tender_metadata_df = pd.DataFrame(
-        [
-            item
-            for tender_list in tender_metadata
-            if tender_list is not None
-            for item in tender_list
-        ]
-    )
+    tender_metadata = [
+        item
+        for tender_list in tender_metadata
+        if tender_list is not None
+        for item in tender_list
+    ]
 
-    context.log.info(f"Columns: {tender_metadata_df.columns}")
-
+    # In-memory file system wizardry
+    memfs = fsspec.filesystem("memory")
     with duckdb.get_connection() as conn:
-        conn.execute("insert into raw_tenders select * from tender_metadata_df")
+        with memfs.open("tender_metadata.json", "w") as file:
+            file.write(json.dumps(tender_metadata))
+            context.log.info("Metadata dumped to memfs")
 
-        expected_columns = (
-            conn.execute("PRAGMA table_info('raw_tenders')").fetchdf()["name"].tolist()
-        )
+            # Register the memory filesystem and create the table
+            conn.register_filesystem(memfs)
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS raw_tenders AS SELECT * FROM read_json_auto('memory://tender_metadata.json')"
+            )
+            context.log.info("'raw_tenders' table created")
 
-        context.log.info(f"Expected cols: {expected_columns}")
+            # Insert the data into the table
+            conn.execute(
+                "INSERT INTO raw_tenders SELECT * FROM read_json_auto('memory://tender_metadata.json')"
+            )
+            context.log.info("Tenders inserted")
+
         preview_query = "select * from raw_tenders limit 10"
         preview_df = conn.execute(preview_query).fetchdf()
 
