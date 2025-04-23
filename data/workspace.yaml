@@ -5,13 +5,7 @@ load_from:
       port: 4000
       location_name: "ingestion"
 
-  - grpc_server:
-      host: transformation
-      port: 4010
-      location_name: "transformation"
-
-
-  - grpc_server:
-      host: duck_test
-      port: 4020
-      location_name: "duck_test"
+  # - grpc_server:
+  #     host: transformation
+  #     port: 4010
+  #     location_name: "transformation"

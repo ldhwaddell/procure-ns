@@ -168,11 +168,6 @@ async def tender_metadata(
 defs = dg.Definitions(
     assets=[new_tenders, tender_metadata],
     resources={
-        "dwh": DataWarehouseResource(
-            username=dg.EnvVar("DWH_POSTGRES_USER"),
-            password=dg.EnvVar("DWH_POSTGRES_PASSWORD"),
-            db=dg.EnvVar("DWH_POSTGRES_DB"),
-        ),
         "proxy": ProxyResource(
             username=dg.EnvVar("PROXY_USER"),
             password=dg.EnvVar("PROXY_PASSWORD"),

@@ -1,27 +1,4 @@
 services:
-
-  dwh:
-    image: postgres:15
-    container_name: dwh
-    hostname: dwh
-    ports:
-      - 127.0.0.1:5432:5432
-    volumes:
-      - dwh:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: ${DWH_POSTGRES_USER}
-      POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD}
-      POSTGRES_DB: ${DWH_POSTGRES_DB}
-    networks:
-      - dagster_network
-    healthcheck:
-      test: ['CMD-SHELL', "sh -c 'pg_isready -U ${DWH_POSTGRES_USER} -d ${DWH_POSTGRES_DB}'"]
-      interval: 10s
-      timeout: 8s
-      retries: 5
-
-  # ---------- Dagster Services ---------- 
-
   # This service runs the postgres DB used by dagster for run storage, schedule storage,
   # and event log storage.
   dagster_postgresql:
@@ -57,9 +34,6 @@ services:
       DAGSTER_POSTGRES_DB: ${DAGSTER_POSTGRES_DB}
       DAGSTER_CURRENT_IMAGE: "ingestion"
       DWH_DUCKDB: ${DWH_DUCKDB}
-      DWH_POSTGRES_USER: ${DWH_POSTGRES_USER}
-      DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD}
-      DWH_POSTGRES_DB: ${DWH_POSTGRES_DB}
       PROXY_USER: ${PROXY_USER}
       PROXY_PASSWORD: ${PROXY_PASSWORD}
     networks:
@@ -71,59 +45,25 @@ services:
       start_period: 10s
     volumes:
       - ${SHARED_DIR}:/shared
-    depends_on:
-      dwh:
-        condition: service_healthy
 
-  transformation:
-    image: transformation
-    build:
-      context: ./transformation
-      dockerfile: Dockerfile
-      args:
-        DWH_POSTGRES_USER: ${DWH_POSTGRES_USER}
-        DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD}
-        DWH_POSTGRES_DB: ${DWH_POSTGRES_DB}
-    restart: always
-    environment:
-      DAGSTER_POSTGRES_USER: ${DAGSTER_POSTGRES_USER}
-      DAGSTER_POSTGRES_PASSWORD: ${DAGSTER_POSTGRES_PASSWORD}
-      DAGSTER_POSTGRES_DB: ${DAGSTER_POSTGRES_DB}
-      DAGSTER_CURRENT_IMAGE: "transformation"
-      DWH_POSTGRES_USER: ${DWH_POSTGRES_USER}
-      DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD}
-      DWH_POSTGRES_DB: ${DWH_POSTGRES_DB}
-    networks:
-      - dagster_network
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/4010'"]
-      interval: 5s
-      retries: 10
-      start_period: 10s
-    depends_on:
-      dwh:
-        condition: service_healthy
-
-  duck_test:
-    image: duck_test
-    build:
-      context: ./duck_test
-      dockerfile: Dockerfile
-    restart: always
-    environment:
-      DWH_DUCKDB: ${DWH_DUCKDB}
-      DAGSTER_CURRENT_IMAGE: "duck_test"
-      PROXY_USER: ${PROXY_USER}
-      PROXY_PASSWORD: ${PROXY_PASSWORD}
-    networks:
-      - dagster_network
-    volumes:
-      - ${SHARED_DIR}:/shared
-      - /var/run/docker.sock:/var/run/docker.sock
-    depends_on:
-      dagster_postgresql:
-        condition: service_healthy
-
+  # transformation:
+  #   image: transformation
+  #   build:
+  #     context: ./transformation
+  #     dockerfile: Dockerfile
+  #   restart: always
+  #   environment:
+  #     DAGSTER_POSTGRES_USER: ${DAGSTER_POSTGRES_USER}
+  #     DAGSTER_POSTGRES_PASSWORD: ${DAGSTER_POSTGRES_PASSWORD}
+  #     DAGSTER_POSTGRES_DB: ${DAGSTER_POSTGRES_DB}
+  #     DAGSTER_CURRENT_IMAGE: "transformation"
+  #   networks:
+  #     - dagster_network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/4010'"]
+  #     interval: 5s
+  #     retries: 10
+  #     start_period: 10s
 
   # This service runs dagster-webserver, which loads your user code from the user code container.
   # Since our instance uses the QueuedRunCoordinator, any runs submitted from the webserver will be put on
@@ -157,12 +97,10 @@ services:
     depends_on:
       dagster_postgresql:
         condition: service_healthy
-      dwh:
-        condition: service_healthy
       ingestion:
         condition: service_healthy
-      transformation:
-        condition: service_healthy
+      # transformation:
+      #   condition: service_healthy
 
   # This service runs the dagster-daemon process, which is responsible for taking runs
   # off of the queue and launching them, as well as creating runs from schedules or sensors.
@@ -179,9 +117,6 @@ services:
       DAGSTER_POSTGRES_USER: ${DAGSTER_POSTGRES_USER}
       DAGSTER_POSTGRES_PASSWORD: ${DAGSTER_POSTGRES_PASSWORD}
       DAGSTER_POSTGRES_DB: ${DAGSTER_POSTGRES_DB}
-      DWH_POSTGRES_USER: ${DWH_POSTGRES_USER}
-      DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD}
-      DWH_POSTGRES_DB: ${DWH_POSTGRES_DB}
       DWH_DUCKDB: ${DWH_DUCKDB}
       PROXY_USER: ${PROXY_USER}
       PROXY_PASSWORD: ${PROXY_PASSWORD}
@@ -194,12 +129,10 @@ services:
     depends_on:
       dagster_postgresql:
         condition: service_healthy
-      dwh:
-        condition: service_healthy
       ingestion:
         condition: service_healthy
-      transformation:
-        condition: service_healthy
+      # transformation:
+      #   condition: service_healthy
 
 networks:
   dagster_network:
@@ -207,6 +140,5 @@ networks:
     name: dagster_network
 
 volumes:
-  dwh:
   postgres_volume:
     name: dagster_postgres_volume

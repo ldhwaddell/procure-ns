@@ -8,8 +8,7 @@ RUN pip install \
 	dagster-duckdb-pandas \
 	playwright \
 	fake-useragent \
-	httpx \
-	asyncpg
+	httpx
 
 WORKDIR /opt/dagster/app
 COPY . /opt/dagster/app/ingestion
